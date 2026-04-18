@@ -774,7 +774,6 @@ export default function HomePage() {
           max-width: 100%;
           padding: 20px clamp(14px, 4vw, 34px) 40px;
           background: radial-gradient(circle at top, #faf3e8 0%, #f5ecdf 42%, #efe4d8 100%);
-          overflow-x: clip;
         }
 
         .page-inner {
@@ -783,14 +782,13 @@ export default function HomePage() {
           display: grid;
           gap: 22px;
           min-width: 0;
-          overflow-x: clip;
+          max-width: 100%;
         }
 
         .card {
           width: 100%;
           max-width: 100%;
           min-width: 0;
-          overflow: hidden;
           background: linear-gradient(158deg, rgba(255, 250, 244, 0.97), rgba(246, 237, 225, 0.95));
           border: 1px solid rgba(188, 168, 143, 0.38);
           border-radius: 28px;
@@ -1039,7 +1037,6 @@ export default function HomePage() {
           min-width: 0;
           max-width: 100%;
           width: 100%;
-          overflow-x: hidden;
         }
         .results > * {
           min-width: 0;
@@ -1058,9 +1055,15 @@ export default function HomePage() {
           min-width: 0;
           overflow-wrap: anywhere;
         }
+        .results-header > * {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+        }
         .results-header-main {
           min-width: 0;
           max-width: 100%;
+          width: 100%;
           flex: 1 1 320px;
         }
         .results-header-actions {
@@ -1164,12 +1167,12 @@ export default function HomePage() {
           min-width: 0;
           width: 100%;
           max-width: 100%;
-          overflow-x: hidden;
           overflow-wrap: anywhere;
         }
         .result-grid > * {
           min-width: 0;
           max-width: 100%;
+          width: 100%;
         }
         .result-card {
           width: 100%;
@@ -1180,10 +1183,12 @@ export default function HomePage() {
           padding: 18px;
           background: linear-gradient(162deg, rgba(255, 252, 247, 0.98), rgba(245, 236, 225, 0.95));
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 20px rgba(128, 103, 72, 0.09);
-          overflow: hidden;
           box-sizing: border-box;
         }
         .result-card h3 {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           margin: 0 0 14px;
           color: #4b4036;
           font-size: 1.12rem;
@@ -1193,6 +1198,8 @@ export default function HomePage() {
         }
 
         .event-hero {
+          width: 100%;
+          max-width: 100%;
           border-radius: 20px;
           border: 1px solid rgba(186, 164, 137, 0.36);
           background: linear-gradient(120deg, rgba(255, 248, 239, 0.95), rgba(241, 229, 214, 0.96));
@@ -1219,11 +1226,14 @@ export default function HomePage() {
           word-break: break-word;
         }
         .event-hero-subtitle {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           margin: 0;
           color: #5d5045;
           line-height: 1.52;
-          max-width: 74ch;
           overflow-wrap: anywhere;
+          word-break: break-word;
           text-wrap: pretty;
         }
 
@@ -1260,6 +1270,9 @@ export default function HomePage() {
           background: #90b4be;
         }
         .brief-eyebrow {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           margin: 0;
           text-transform: uppercase;
           letter-spacing: 0.08em;
@@ -1267,8 +1280,12 @@ export default function HomePage() {
           color: #8d7862;
           font-weight: 700;
           overflow-wrap: anywhere;
+          word-break: break-word;
         }
         .brief-summary {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           margin: 8px 0 0;
           color: #3f352d;
           line-height: 1.58;
@@ -1278,6 +1295,9 @@ export default function HomePage() {
           text-wrap: pretty;
         }
         .item {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           margin: 0 0 10px;
           color: #4b4037;
           font-size: 14px;
@@ -1304,16 +1324,20 @@ export default function HomePage() {
           width: 100%;
           max-width: 100%;
           box-sizing: border-box;
-          overflow: hidden;
         }
         .preview-panel p {
           margin: 0;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           color: #5c4e43;
           line-height: 1.45;
           overflow-wrap: anywhere;
           word-break: break-word;
         }
         .preview-frame {
+          width: 100%;
+          max-width: 100%;
           border-radius: 14px;
           border: 1px solid rgba(196, 172, 143, 0.34);
           background: radial-gradient(circle at 20% 20%, rgba(234, 198, 145, 0.28), transparent 45%),
@@ -1327,13 +1351,11 @@ export default function HomePage() {
           min-width: 0;
           max-width: 100%;
           box-sizing: border-box;
-          overflow: hidden;
         }
         .preview-image-shell {
           border-radius: 14px;
           border: 1px solid rgba(193, 169, 141, 0.38);
           background: linear-gradient(160deg, rgba(249, 239, 226, 0.94), rgba(236, 225, 211, 0.95));
-          overflow: hidden;
           min-height: 220px;
           display: flex;
           align-items: center;
@@ -1356,10 +1378,14 @@ export default function HomePage() {
         .preview-fallback {
           display: grid;
           gap: 10px;
+          width: 100%;
           min-width: 0;
           max-width: 100%;
         }
         .preview-prompt {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           border-radius: 12px;
           border: 1px solid rgba(188, 164, 137, 0.35);
           background: rgba(255, 252, 247, 0.84);
@@ -1371,6 +1397,9 @@ export default function HomePage() {
           word-break: break-word;
         }
         .preview-caption {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           margin: 0;
           font-size: 0.85rem;
           color: #7e6e60;
@@ -1379,7 +1408,9 @@ export default function HomePage() {
         }
         .preview-layout {
           display: grid;
-          grid-template-columns: 1.15fr 0.85fr;
+          width: 100%;
+          max-width: 100%;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
           gap: 8px;
           min-height: 62px;
           min-width: 0;
