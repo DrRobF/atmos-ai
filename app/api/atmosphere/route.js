@@ -162,17 +162,20 @@ function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
   const plannerNotes = notes?.trim() || "No additional planner notes.";
 
   return [
-    `Luxury event concept rendering for a ${eventType} with a ${eventStyle} direction.`,
-    "Use the real venue architecture and proportions from the analyzed venue photo as the base scene.",
-    "Translate any provided decor reference into this venue with believable scale and premium material details.",
-    "Atmosphere target: elegant, realistic, cinematic, and high-end hospitality quality.",
-    "Not a CAD diagram, not AR overlays, not cartoonish. Keep it as a convincing design concept image.",
-    `Lighting direction: ${eventPlan.lighting}`,
-    `Decor placement direction: ${eventPlan.decorPlacement}`,
-    `Room flow direction: ${eventPlan.roomFlow}`,
-    `Design details: ${eventPlan.designNotes}`,
+    `Cinematic luxury event rendering for a ${eventType} with a ${eventStyle} design direction.`,
+    "Use the exact venue architecture, ceiling height, entry path, and room proportions from the analyzed venue photo.",
+    "Apply any reference styling as if installed by a top-tier event production team with realistic scale, spacing, and material finishes.",
+    "Show what guests see first on entry, then the primary focal composition, then supporting zones in coherent visual hierarchy.",
+    "Lighting must read physically real: layered ambient wash, focal highlights, and intentional shadow depth that guides the eye.",
+    "Render premium hospitality detail: believable linens, glassware, floral volume, candle density, staging finishes, and cable-free execution.",
+    "Mood target: editorial, immersive, elevated, and photographable without looking synthetic or over-styled.",
+    "Avoid diagrams, labels, overlays, or AR graphics. Produce a convincing in-room design preview still.",
+    `Lighting plan to depict: ${eventPlan.lighting}`,
+    `Decor layout to depict: ${eventPlan.decorPlacement}`,
+    `Guest movement and energy flow to depict: ${eventPlan.roomFlow}`,
+    `Refinement details to depict: ${eventPlan.designNotes}`,
     `Planner notes: ${plannerNotes}`,
-    "Camera/style guidance: wide interior editorial lens, natural perspective, balanced highlights, rich shadows, premium color grading.",
+    "Camera/style guidance: wide interior editorial lens, natural perspective from guest eye level, controlled highlight roll-off, rich but realistic shadows, premium color grade.",
   ].join(" ");
 }
 
@@ -235,6 +238,9 @@ async function buildEventAtmosphere({
       type: "input_text",
       text:
         "Build a high-end event atmosphere and venue styling plan from these inputs. " +
+        "Think like a luxury event planner giving install-ready direction to a production team. " +
+        "Prioritize fewer, stronger moves over long generic lists. " +
+        "Anchor every recommendation to the room's real geometry: entry sequence, walls, corners, focal axis, and circulation paths. " +
         `Event type: ${eventType}. Style/vibe: ${eventStyle}. ` +
         `Planner notes: ${notes?.trim() || "No notes provided."}`,
     },
@@ -265,6 +271,13 @@ async function buildEventAtmosphere({
               "Analyze the venue photo, adapt any provided reference image style realistically to the venue, " +
               "and provide concrete recommendations for lighting placement, table/decor zones, focal points, " +
               "music/entertainment placement, and guest flow. Keep every section specific and visually believable. " +
+              "No generic wording. Use confident, intentional language and give install-ready specificity. " +
+              "For lighting, specify direction (walls, behind tables, overhead strands), intensity (soft wash vs focused glow), and purpose (highlight focal table, guide movement, build energy near dance floor). " +
+              "For decorPlacement, state exactly where the main table sits, what anchors the focal point, and what guests see first when entering. " +
+              "For roomFlow, describe the guest journey from entry to gathering to high-energy zone, including where bottlenecks are avoided. " +
+              "For music, place speakers/DJ/live elements in believable positions that protect conversation zones while building momentum where appropriate. " +
+              "For designNotes and oneSmartMove, provide premium, high-impact refinements with measurable placement cues (counts, spacing ranges, offsets, or distances where possible). " +
+              "For styledPreviewPrompt, write a cinematic, visual, scene-building prompt with precise mood, arrangement, light behavior, and atmospheric realism; avoid phrases like 'beautiful event scene.' " +
               "Return only JSON matching the schema.",
           },
         ],
