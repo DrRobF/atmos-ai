@@ -772,8 +772,10 @@ export default function HomePage() {
           min-height: 100vh;
           width: 100%;
           max-width: 100%;
+          min-width: 0;
           padding: 20px clamp(14px, 4vw, 34px) 40px;
           background: radial-gradient(circle at top, #faf3e8 0%, #f5ecdf 42%, #efe4d8 100%);
+          box-sizing: border-box;
         }
 
         .page-inner {
@@ -783,6 +785,7 @@ export default function HomePage() {
           gap: 22px;
           min-width: 0;
           max-width: 100%;
+          box-sizing: border-box;
         }
 
         .card {
@@ -793,6 +796,7 @@ export default function HomePage() {
           border: 1px solid rgba(188, 168, 143, 0.38);
           border-radius: 28px;
           box-shadow: 0 20px 38px rgba(115, 92, 64, 0.14);
+          box-sizing: border-box;
         }
 
         .hero {
@@ -1037,10 +1041,13 @@ export default function HomePage() {
           min-width: 0;
           max-width: 100%;
           width: 100%;
+          box-sizing: border-box;
         }
         .results > * {
           min-width: 0;
           max-width: 100%;
+          width: 100%;
+          box-sizing: border-box;
         }
         .results-header {
           display: flex;
@@ -1053,18 +1060,21 @@ export default function HomePage() {
           width: 100%;
           max-width: 100%;
           min-width: 0;
+          box-sizing: border-box;
           overflow-wrap: anywhere;
         }
         .results-header > * {
           width: 100%;
           max-width: 100%;
           min-width: 0;
+          box-sizing: border-box;
         }
         .results-header-main {
           min-width: 0;
           max-width: 100%;
           width: 100%;
           flex: 1 1 320px;
+          box-sizing: border-box;
         }
         .results-header-actions {
           min-width: 0;
@@ -1073,6 +1083,7 @@ export default function HomePage() {
           display: flex;
           justify-content: flex-end;
           width: 100%;
+          box-sizing: border-box;
         }
         .results-kicker {
           margin: 0 0 6px;
@@ -1167,12 +1178,14 @@ export default function HomePage() {
           min-width: 0;
           width: 100%;
           max-width: 100%;
+          box-sizing: border-box;
           overflow-wrap: anywhere;
         }
         .result-grid > * {
           min-width: 0;
           max-width: 100%;
           width: 100%;
+          box-sizing: border-box;
         }
         .result-card {
           width: 100%;
@@ -1200,6 +1213,7 @@ export default function HomePage() {
         .event-hero {
           width: 100%;
           max-width: 100%;
+          min-width: 0;
           border-radius: 20px;
           border: 1px solid rgba(186, 164, 137, 0.36);
           background: linear-gradient(120deg, rgba(255, 248, 239, 0.95), rgba(241, 229, 214, 0.96));
@@ -1207,7 +1221,7 @@ export default function HomePage() {
           display: grid;
           gap: 10px;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-          min-width: 0;
+          box-sizing: border-box;
         }
         .event-hero-eyebrow {
           margin: 0;
