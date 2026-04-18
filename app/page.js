@@ -621,7 +621,7 @@ export default function HomePage() {
 
       <section className="results card">
         <div className="results-header">
-          <div>
+          <div className="results-header-main">
             <p className="results-kicker">Final Report</p>
             <h2>{mode === "event" ? "Your Event Concept Brief" : "Your Atmosphere Blueprint"}</h2>
           </div>
@@ -685,6 +685,8 @@ export default function HomePage() {
           gap: 22px;
           max-width: 1100px;
           margin: 0 auto;
+          width: 100%;
+          overflow-x: hidden;
         }
 
         .card {
@@ -693,6 +695,8 @@ export default function HomePage() {
           border-radius: 20px;
           backdrop-filter: blur(8px);
           box-shadow: 0 20px 50px rgba(7, 6, 18, 0.35);
+          min-width: 0;
+          max-width: 100%;
         }
 
         .hero {
@@ -988,6 +992,8 @@ export default function HomePage() {
           display: grid;
           gap: 22px;
           overflow-x: hidden;
+          min-width: 0;
+          max-width: 100%;
         }
 
         .results-header {
@@ -998,6 +1004,12 @@ export default function HomePage() {
           align-items: end;
           border-bottom: 1px solid rgba(219, 198, 255, 0.35);
           padding-bottom: 14px;
+        }
+
+        .results-header-main {
+          flex: 1 1 380px;
+          min-width: 0;
+          max-width: 100%;
         }
 
         .results-kicker {
@@ -1014,6 +1026,8 @@ export default function HomePage() {
           font-size: 1.45rem;
           color: #f9f3ff;
           line-height: 1.2;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .download-btn {
@@ -1026,6 +1040,9 @@ export default function HomePage() {
           font-weight: 600;
           font-size: 0.92rem;
           transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+          flex: 0 0 auto;
+          margin-left: auto;
+          max-width: 100%;
         }
 
         .download-btn:hover:not(:disabled) {
@@ -1071,6 +1088,8 @@ export default function HomePage() {
           display: grid;
           grid-template-columns: repeat(1, minmax(0, 1fr));
           gap: 16px;
+          min-width: 0;
+          max-width: 100%;
         }
 
         .result-grid.event-grid {
@@ -1083,6 +1102,8 @@ export default function HomePage() {
           padding: 18px;
           background: linear-gradient(160deg, rgba(44, 37, 68, 0.95), rgba(30, 26, 46, 0.94));
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          min-width: 0;
+          max-width: 100%;
         }
 
         .result-card h3 {
@@ -1090,6 +1111,8 @@ export default function HomePage() {
           color: #f8f2ff;
           font-size: 1.15rem;
           letter-spacing: 0.01em;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .event-brief-card {
@@ -1111,6 +1134,8 @@ export default function HomePage() {
           color: #fff8ff;
           line-height: 1.55;
           font-size: 0.97rem;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .item {
@@ -1118,6 +1143,8 @@ export default function HomePage() {
           color: #daccf2;
           font-size: 14px;
           line-height: 1.5;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .item strong {
@@ -1134,6 +1161,8 @@ export default function HomePage() {
           display: grid;
           gap: 18px;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 22px 30px rgba(0, 0, 0, 0.2);
+          min-width: 0;
+          max-width: 100%;
         }
 
         .preview-panel p {
@@ -1166,10 +1195,14 @@ export default function HomePage() {
           justify-content: center;
           padding: 10px;
           box-shadow: 0 12px 26px rgba(9, 8, 18, 0.3);
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
         }
 
         .preview-image {
           display: block;
+          width: 100%;
           max-width: 100%;
           height: auto;
           max-height: 560px;
@@ -1189,12 +1222,16 @@ export default function HomePage() {
           color: #decfff;
           font-size: 0.92rem;
           line-height: 1.5;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .preview-caption {
           margin: 0;
           font-size: 0.85rem;
           color: #bca6ea;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .preview-layout {
@@ -1271,6 +1308,13 @@ export default function HomePage() {
           .result-grid.event-grid .preview-panel,
           .result-grid.event-grid .result-card.smart-move {
             grid-column: span 2;
+          }
+        }
+
+        @media (max-width: 720px) {
+          .download-btn {
+            width: 100%;
+            margin-left: 0;
           }
         }
       `}</style>
