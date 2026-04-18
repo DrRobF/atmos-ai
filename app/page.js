@@ -1171,22 +1171,133 @@ export default function HomePage() {
           flex: 0 0 auto;
         }
 
-        .result-grid {
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @media (min-width: 820px) {
+          .builder-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .control-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+          .event-controls {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr);
+            align-items: start;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .results-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .results-header-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+          .download-btn {
+            width: 100%;
+            display: flex;
+          }
+          button[type="submit"] {
+            max-width: 100%;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}
+
+function Selector({ label, options, selected, onSelect }) {
+  return (
+    <div className="selector">
+      <label>{label}</label>
+      <div className="chips">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={`chip ${selected === option ? "active" : ""}`}
+            aria-pressed={selected === option}
+            data-selected={selected === option ? "true" : "false"}
+            onClick={() => onSelect(option)}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+      <style jsx>{`
+        .selector {
           display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          gap: 16px;
+          gap: 9px;
+          min-width: 0;
+        }
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: stretch;
           min-width: 0;
           width: 100%;
+        }
+        .chips .chip {
+          border: 1px solid rgba(183, 164, 140, 0.8);
+          color: #4f4338;
+          padding: 10px 18px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #fffdf9, #f2eade);
+          cursor: pointer;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           max-width: 100%;
-          box-sizing: border-box;
+          min-width: 0;
+          white-space: normal;
+          text-align: center;
           overflow-wrap: anywhere;
+          word-break: break-word;
+          box-shadow: 0 2px 8px rgba(118, 94, 66, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
         }
-        .result-grid > * {
-          min-width: 0;
-          max-width: 100%;
-          width: 100%;
-          box-sizing: border-box;
+        .chips .chip:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 7px 15px rgba(121, 96, 67, 0.14);
+          border-color: rgba(162, 141, 116, 0.95);
         }
+        .chips .chip:focus-visible {
+          outline: 2px solid #3b9a8c;
+          outline-offset: 2px;
+        }
+        .chips .chip.active,
+        .chips .chip[data-selected="true"] {
+          background: linear-gradient(138deg, #2f8b7e 0%, #2a786d 58%, #20655c 100%);
+          border-color: rgba(30, 87, 79, 0.95);
+          color: #f8fffd;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.33), 0 0 0 3px rgba(47, 139, 126, 0.27),
+            0 9px 18px rgba(28, 86, 77, 0.31);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function ResultCard({ title, items, className = "" }) {
+  return (
+    <article className={`result-card ${className}`.trim()}>
+      <h3>{title}</h3>
+      {items.map(([label, value]) => (
+        <p key={`${title}-${label}`} className="item">
+          <strong>{label}:</strong>
+          {value || "—"}
+        </p>
+      ))}
+      <style jsx>{`
         .result-card {
           width: 100%;
           max-width: 100%;
@@ -1198,7 +1309,7 @@ export default function HomePage() {
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 20px rgba(128, 103, 72, 0.09);
           box-sizing: border-box;
         }
-        .result-card h3 {
+        h3 {
           width: 100%;
           max-width: 100%;
           min-width: 0;
@@ -1209,7 +1320,166 @@ export default function HomePage() {
           overflow-wrap: anywhere;
           word-break: break-word;
         }
+        .item {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          margin: 0 0 10px;
+          color: #4b4037;
+          font-size: 14px;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          text-wrap: pretty;
+        }
+        .item strong {
+          color: #2f2823;
+          margin-right: 4px;
+        }
+      `}</style>
+    </article>
+  );
+}
 
+function PersonalResults({ result }) {
+  return (
+    <div className="result-grid">
+      <ResultCard
+        title="Lighting"
+        items={[
+          ["Placement", result.lighting?.whereLightShouldGo],
+          ["Brightness", result.lighting?.brightnessLevel],
+          ["Temperature", result.lighting?.warmCoolFeel],
+        ]}
+      />
+      <ResultCard
+        title="Placement"
+        items={[
+          ["Move", result.placement?.whatToMove],
+          ["Face", result.placement?.whatToFace],
+          ["Remove", result.placement?.whatToRemove],
+          ["Focal Point", result.placement?.focalPoint],
+        ]}
+      />
+      <ResultCard
+        title="Sound"
+        items={[
+          ["Style", result.sound?.musicStyle],
+          ["Tempo", result.sound?.tempo],
+          ["Energy", result.sound?.energy],
+          ["Search Phrases", (result.sound?.searchPhrases || []).join(", ")],
+        ]}
+      />
+      <ResultCard title="Song Ideas" items={(result.songIdeas || []).map((idea, index) => [`Idea ${index + 1}`, idea])} />
+      <ResultCard
+        title="Environment"
+        items={[
+          ["Feel", result.environment?.emotionalSpatialFeel],
+          ["Adjustments", result.environment?.roomAdjustments],
+        ]}
+      />
+      <ResultCard title="One Smart Move" items={[["Suggestion", result.oneSmartMove]]} />
+      <style jsx>{`
+        .result-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 16px;
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow-wrap: anywhere;
+        }
+        .result-grid > :global(*) {
+          min-width: 0;
+          max-width: 100%;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        @media (min-width: 820px) {
+          .result-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function EventResults({ result }) {
+  const hasStyledPreviewImage = Boolean(result.styledPreviewImageUrl);
+  const hasStyledPreviewPrompt = Boolean(result.styledPreviewPrompt);
+  const conceptSections = getEventConceptSections(result);
+
+  return (
+    <div className="result-grid event-grid">
+      <article className="event-hero">
+        <p className="event-hero-eyebrow">Event Concept Brief</p>
+        <h3 className="event-hero-title">A polished event narrative for concept, execution, and guest experience.</h3>
+        <p className="event-hero-subtitle">
+          This brief is structured in a fixed section order to make planning handoff clean and reliable for designers,
+          production teams, and client approvals.
+        </p>
+      </article>
+
+      <article className="preview-panel">
+        <span className="preview-tag">Styled Preview</span>
+        {hasStyledPreviewImage ? (
+          <div className="preview-image-shell">
+            <img src={result.styledPreviewImageUrl} alt="Generated styled event concept preview" className="preview-image" />
+          </div>
+        ) : (
+          <div className="preview-fallback">
+            <div className="preview-frame" aria-hidden="true">
+              <div className="preview-layout">
+                <div className="preview-block" />
+                <div className="preview-block secondary" />
+              </div>
+              <div className="preview-chip-row">
+                <span className="preview-chip">Tablescape</span>
+                <span className="preview-chip">Lighting Wash</span>
+                <span className="preview-chip">Guest Flow</span>
+              </div>
+            </div>
+            <p className="preview-caption">
+              Preview image generation is unavailable right now. Use this visual concept prompt.
+            </p>
+          </div>
+        )}
+        {hasStyledPreviewPrompt ? (
+          <p className="preview-prompt">
+            {toConciseSentence(result.styledPreviewPrompt, "A cinematic design direction will appear here.")}
+          </p>
+        ) : (
+          <p className="preview-prompt">A styled preview concept prompt will appear here.</p>
+        )}
+      </article>
+
+      {conceptSections.map(([title, summary], index) => (
+        <EventBriefCard
+          key={title}
+          title={title}
+          summary={summary}
+          className={`${eventSectionAccents[index % eventSectionAccents.length]} ${index === conceptSections.length - 1 ? "smart-move" : ""}`}
+        />
+      ))}
+      <style jsx>{`
+        .result-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 16px;
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow-wrap: anywhere;
+        }
+        .result-grid > :global(*) {
+          min-width: 0;
+          max-width: 100%;
+          width: 100%;
+          box-sizing: border-box;
+        }
         .event-hero {
           width: 100%;
           max-width: 100%;
@@ -1250,81 +1520,6 @@ export default function HomePage() {
           word-break: break-word;
           text-wrap: pretty;
         }
-
-        .event-brief-card {
-          position: relative;
-          padding-left: 16px;
-        }
-        .event-brief-card::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 8px;
-          border-radius: 12px;
-          background: #86b9b0;
-        }
-        .event-brief-card.blue::before {
-          background: #95a9cb;
-        }
-        .event-brief-card.sage::before {
-          background: #9eb78a;
-        }
-        .event-brief-card.taupe::before {
-          background: #b79f90;
-        }
-        .event-brief-card.plum::before {
-          background: #a89bc2;
-        }
-        .event-brief-card.olive::before {
-          background: #b2af7d;
-        }
-        .event-brief-card.sky::before {
-          background: #90b4be;
-        }
-        .brief-eyebrow {
-          width: 100%;
-          max-width: 100%;
-          min-width: 0;
-          margin: 0;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          font-size: 11px;
-          color: #8d7862;
-          font-weight: 700;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-        }
-        .brief-summary {
-          width: 100%;
-          max-width: 100%;
-          min-width: 0;
-          margin: 8px 0 0;
-          color: #3f352d;
-          line-height: 1.58;
-          font-size: 0.97rem;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-          text-wrap: pretty;
-        }
-        .item {
-          width: 100%;
-          max-width: 100%;
-          min-width: 0;
-          margin: 0 0 10px;
-          color: #4b4037;
-          font-size: 14px;
-          line-height: 1.5;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-          text-wrap: pretty;
-        }
-        .item strong {
-          color: #2f2823;
-          margin-right: 4px;
-        }
-
         .preview-panel {
           border: 1px solid rgba(186, 164, 137, 0.36);
           border-radius: 20px;
@@ -1462,244 +1657,16 @@ export default function HomePage() {
           color: #8f7962;
           font-weight: 600;
         }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
         @media (min-width: 820px) {
-          .builder-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .control-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-          .event-controls {
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr);
-            align-items: start;
-          }
           .result-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
-          .result-grid.event-grid .preview-panel,
-          .result-grid.event-grid .event-hero,
-          .result-grid.event-grid .result-card.smart-move {
+          .preview-panel,
+          .event-hero {
             grid-column: span 2;
           }
         }
-
-        @media (max-width: 760px) {
-          .results-header {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .results-header-actions {
-            width: 100%;
-            justify-content: stretch;
-          }
-          .download-btn {
-            width: 100%;
-            display: flex;
-          }
-          button[type="submit"] {
-            max-width: 100%;
-          }
-        }
       `}</style>
-    </main>
-  );
-}
-
-function Selector({ label, options, selected, onSelect }) {
-  return (
-    <div className="selector">
-      <label>{label}</label>
-      <div className="chips">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`chip ${selected === option ? "active" : ""}`}
-            aria-pressed={selected === option}
-            data-selected={selected === option ? "true" : "false"}
-            onClick={() => onSelect(option)}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-      <style jsx>{`
-        .selector {
-          display: grid;
-          gap: 9px;
-          min-width: 0;
-        }
-        .chips {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          align-items: stretch;
-          min-width: 0;
-          width: 100%;
-        }
-        .chips .chip {
-          border: 1px solid rgba(183, 164, 140, 0.8);
-          color: #4f4338;
-          padding: 10px 18px;
-          border-radius: 999px;
-          background: linear-gradient(180deg, #fffdf9, #f2eade);
-          cursor: pointer;
-          font-weight: 700;
-          letter-spacing: 0.01em;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          max-width: 100%;
-          min-width: 0;
-          white-space: normal;
-          text-align: center;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-          box-shadow: 0 2px 8px rgba(118, 94, 66, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
-        }
-        .chips .chip:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 7px 15px rgba(121, 96, 67, 0.14);
-          border-color: rgba(162, 141, 116, 0.95);
-        }
-        .chips .chip:focus-visible {
-          outline: 2px solid #3b9a8c;
-          outline-offset: 2px;
-        }
-        .chips .chip.active,
-        .chips .chip[data-selected="true"] {
-          background: linear-gradient(138deg, #2f8b7e 0%, #2a786d 58%, #20655c 100%);
-          border-color: rgba(30, 87, 79, 0.95);
-          color: #f8fffd;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.33), 0 0 0 3px rgba(47, 139, 126, 0.27),
-            0 9px 18px rgba(28, 86, 77, 0.31);
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function ResultCard({ title, items, className = "" }) {
-  return (
-    <article className={`result-card ${className}`.trim()}>
-      <h3>{title}</h3>
-      {items.map(([label, value]) => (
-        <p key={`${title}-${label}`} className="item">
-          <strong>{label}:</strong>
-          {value || "—"}
-        </p>
-      ))}
-    </article>
-  );
-}
-
-function PersonalResults({ result }) {
-  return (
-    <div className="result-grid">
-      <ResultCard
-        title="Lighting"
-        items={[
-          ["Placement", result.lighting?.whereLightShouldGo],
-          ["Brightness", result.lighting?.brightnessLevel],
-          ["Temperature", result.lighting?.warmCoolFeel],
-        ]}
-      />
-      <ResultCard
-        title="Placement"
-        items={[
-          ["Move", result.placement?.whatToMove],
-          ["Face", result.placement?.whatToFace],
-          ["Remove", result.placement?.whatToRemove],
-          ["Focal Point", result.placement?.focalPoint],
-        ]}
-      />
-      <ResultCard
-        title="Sound"
-        items={[
-          ["Style", result.sound?.musicStyle],
-          ["Tempo", result.sound?.tempo],
-          ["Energy", result.sound?.energy],
-          ["Search Phrases", (result.sound?.searchPhrases || []).join(", ")],
-        ]}
-      />
-      <ResultCard title="Song Ideas" items={(result.songIdeas || []).map((idea, index) => [`Idea ${index + 1}`, idea])} />
-      <ResultCard
-        title="Environment"
-        items={[
-          ["Feel", result.environment?.emotionalSpatialFeel],
-          ["Adjustments", result.environment?.roomAdjustments],
-        ]}
-      />
-      <ResultCard title="One Smart Move" items={[["Suggestion", result.oneSmartMove]]} />
-    </div>
-  );
-}
-
-function EventResults({ result }) {
-  const hasStyledPreviewImage = Boolean(result.styledPreviewImageUrl);
-  const hasStyledPreviewPrompt = Boolean(result.styledPreviewPrompt);
-  const conceptSections = getEventConceptSections(result);
-
-  return (
-    <div className="result-grid event-grid">
-      <article className="event-hero">
-        <p className="event-hero-eyebrow">Event Concept Brief</p>
-        <h3 className="event-hero-title">A polished event narrative for concept, execution, and guest experience.</h3>
-        <p className="event-hero-subtitle">
-          This brief is structured in a fixed section order to make planning handoff clean and reliable for designers,
-          production teams, and client approvals.
-        </p>
-      </article>
-
-      <article className="preview-panel">
-        <span className="preview-tag">Styled Preview</span>
-        {hasStyledPreviewImage ? (
-          <div className="preview-image-shell">
-            <img src={result.styledPreviewImageUrl} alt="Generated styled event concept preview" className="preview-image" />
-          </div>
-        ) : (
-          <div className="preview-fallback">
-            <div className="preview-frame" aria-hidden="true">
-              <div className="preview-layout">
-                <div className="preview-block" />
-                <div className="preview-block secondary" />
-              </div>
-              <div className="preview-chip-row">
-                <span className="preview-chip">Tablescape</span>
-                <span className="preview-chip">Lighting Wash</span>
-                <span className="preview-chip">Guest Flow</span>
-              </div>
-            </div>
-            <p className="preview-caption">
-              Preview image generation is unavailable right now. Use this visual concept prompt.
-            </p>
-          </div>
-        )}
-        {hasStyledPreviewPrompt ? (
-          <p className="preview-prompt">
-            {toConciseSentence(result.styledPreviewPrompt, "A cinematic design direction will appear here.")}
-          </p>
-        ) : (
-          <p className="preview-prompt">A styled preview concept prompt will appear here.</p>
-        )}
-      </article>
-
-      {conceptSections.map(([title, summary], index) => (
-        <EventBriefCard
-          key={title}
-          title={title}
-          summary={summary}
-          className={`${eventSectionAccents[index % eventSectionAccents.length]} ${index === conceptSections.length - 1 ? "smart-move" : ""}`}
-        />
-      ))}
     </div>
   );
 }
@@ -1709,6 +1676,70 @@ function EventBriefCard({ title, summary, className = "" }) {
     <article className={`result-card event-brief-card ${className}`.trim()}>
       <p className="brief-eyebrow">{title}</p>
       <p className="brief-summary">{summary}</p>
+      <style jsx>{`
+        .event-brief-card {
+          position: relative;
+          padding-left: 16px;
+        }
+        .event-brief-card::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 8px;
+          border-radius: 12px;
+          background: #86b9b0;
+        }
+        .event-brief-card.blue::before {
+          background: #95a9cb;
+        }
+        .event-brief-card.sage::before {
+          background: #9eb78a;
+        }
+        .event-brief-card.taupe::before {
+          background: #b79f90;
+        }
+        .event-brief-card.plum::before {
+          background: #a89bc2;
+        }
+        .event-brief-card.olive::before {
+          background: #b2af7d;
+        }
+        .event-brief-card.sky::before {
+          background: #90b4be;
+        }
+        .brief-eyebrow {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-size: 11px;
+          color: #8d7862;
+          font-weight: 700;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .brief-summary {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          margin: 8px 0 0;
+          color: #3f352d;
+          line-height: 1.58;
+          font-size: 0.97rem;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          text-wrap: pretty;
+        }
+        @media (min-width: 820px) {
+          .event-brief-card.smart-move {
+            grid-column: span 2;
+          }
+        }
+      `}</style>
     </article>
   );
 }
