@@ -229,72 +229,77 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              <div className="builder-grid">
-                <div className="field image-field">
-                  <label htmlFor="venueImageUpload">Venue Image</label>
-                  <label className="upload" htmlFor="venueImageUpload">
-                    <input
-                      id="venueImageUpload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleVenueImageChange}
-                    />
-                    {venueImagePreview ? (
-                      <img src={venueImagePreview} alt="Uploaded venue preview" />
-                    ) : (
-                      <div className="upload-empty">
-                        <strong>Drop a venue image or click to upload</strong>
-                        <span>Main room, patio, ballroom, rooftop, or private dining layout.</span>
-                      </div>
-                    )}
-                  </label>
+              <div className="event-form-shell">
+                <div className="builder-grid">
+                  <div className="field image-field">
+                    <label htmlFor="venueImageUpload">Venue Image</label>
+                    <label className="upload" htmlFor="venueImageUpload">
+                      <input
+                        id="venueImageUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleVenueImageChange}
+                      />
+                      {venueImagePreview ? (
+                        <img src={venueImagePreview} alt="Uploaded venue preview" />
+                      ) : (
+                        <div className="upload-empty">
+                          <strong>Drop a venue image or click to upload</strong>
+                          <span>Main room, patio, ballroom, rooftop, or private dining layout.</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+
+                  <div className="field image-field">
+                    <label htmlFor="referenceImageUpload">Decor / Table Reference (optional)</label>
+                    <label className="upload" htmlFor="referenceImageUpload">
+                      <input
+                        id="referenceImageUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleReferenceImageChange}
+                      />
+                      {referenceImagePreview ? (
+                        <img src={referenceImagePreview} alt="Uploaded decor reference preview" />
+                      ) : (
+                        <div className="upload-empty">
+                          <strong>Optional style reference image</strong>
+                          <span>
+                            Upload inspiration for tablescape, floral direction, or overall styling.
+                          </span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
                 </div>
 
-                <div className="field image-field">
-                  <label htmlFor="referenceImageUpload">Decor / Table Reference (optional)</label>
-                  <label className="upload" htmlFor="referenceImageUpload">
-                    <input
-                      id="referenceImageUpload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleReferenceImageChange}
+                <div className="planner-brief">
+                  <p className="planner-kicker">Event Brief</p>
+                  <div className="control-grid event-controls">
+                    <Selector
+                      label="Event Type"
+                      options={eventTypeOptions}
+                      selected={eventType}
+                      onSelect={setEventType}
                     />
-                    {referenceImagePreview ? (
-                      <img src={referenceImagePreview} alt="Uploaded decor reference preview" />
-                    ) : (
-                      <div className="upload-empty">
-                        <strong>Optional style reference image</strong>
-                        <span>
-                          Upload inspiration for tablescape, floral direction, or overall styling.
-                        </span>
-                      </div>
-                    )}
-                  </label>
-                </div>
-              </div>
-
-              <div className="control-grid event-controls">
-                <Selector
-                  label="Event Type"
-                  options={eventTypeOptions}
-                  selected={eventType}
-                  onSelect={setEventType}
-                />
-                <Selector
-                  label="Style"
-                  options={eventStyleOptions}
-                  selected={eventStyle}
-                  onSelect={setEventStyle}
-                />
-                <div className="field notes-field">
-                  <label htmlFor="eventNotes">Planner Notes (optional)</label>
-                  <textarea
-                    id="eventNotes"
-                    value={eventNotes}
-                    onChange={(event) => setEventNotes(event.target.value)}
-                    placeholder="Guest count, special moments, keynote timing, menu style, or any non-negotiables."
-                    rows={4}
-                  />
+                    <Selector
+                      label="Style"
+                      options={eventStyleOptions}
+                      selected={eventStyle}
+                      onSelect={setEventStyle}
+                    />
+                    <div className="field notes-field">
+                      <label htmlFor="eventNotes">Planner Notes (optional)</label>
+                      <textarea
+                        id="eventNotes"
+                        value={eventNotes}
+                        onChange={(event) => setEventNotes(event.target.value)}
+                        placeholder="Guest count, special moments, keynote timing, menu style, or any non-negotiables."
+                        rows={4}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </>
@@ -405,31 +410,48 @@ export default function HomePage() {
         }
 
         .mode-switch {
+          position: relative;
           display: inline-grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 8px;
           width: min(420px, 100%);
-          background: rgba(10, 9, 20, 0.85);
+          background: linear-gradient(180deg, rgba(16, 15, 30, 0.95), rgba(9, 8, 18, 0.95));
           padding: 8px;
           border-radius: 14px;
-          border: 1px solid rgba(201, 174, 255, 0.18);
+          border: 1px solid rgba(201, 174, 255, 0.24);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 28px rgba(3, 2, 9, 0.38);
+        }
+
+        .mode-switch::after {
+          content: "";
+          position: absolute;
+          inset: 6px;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          pointer-events: none;
         }
 
         .mode-button {
           border: 1px solid rgba(201, 174, 255, 0.24);
-          background: transparent;
+          background: rgba(255, 255, 255, 0.01);
           color: #d9c9ff;
           font-weight: 600;
           border-radius: 10px;
           padding: 10px 12px;
           cursor: pointer;
+          transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .mode-button:hover {
+          transform: translateY(-1px);
+          border-color: rgba(214, 188, 255, 0.42);
         }
 
         .mode-button.active {
-          background: linear-gradient(120deg, #9d6dff, #6f48ff);
+          background: linear-gradient(120deg, #a57bff 5%, #764fff 45%, #6247ff 100%);
           border-color: #c7aeff;
           color: white;
-          box-shadow: 0 8px 18px rgba(100, 70, 210, 0.45);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 20px rgba(90, 55, 210, 0.46);
         }
 
         .builder {
@@ -517,6 +539,35 @@ export default function HomePage() {
           grid-template-columns: repeat(1, minmax(0, 1fr));
           gap: 14px;
           margin-top: 18px;
+        }
+
+        .event-form-shell {
+          border: 1px solid rgba(201, 173, 255, 0.22);
+          border-radius: 16px;
+          padding: 16px;
+          background: linear-gradient(160deg, rgba(22, 18, 38, 0.9), rgba(11, 10, 22, 0.85));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .planner-brief {
+          margin-top: 18px;
+          border-radius: 14px;
+          border: 1px solid rgba(207, 185, 255, 0.22);
+          background: rgba(10, 9, 19, 0.68);
+          padding: 14px;
+        }
+
+        .planner-kicker {
+          margin: 0;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #d0b8ff;
+        }
+
+        .planner-brief .control-grid {
+          margin-top: 12px;
         }
 
         .selector {
@@ -652,16 +703,64 @@ export default function HomePage() {
           border: 1px solid rgba(219, 196, 255, 0.2);
           border-radius: 16px;
           padding: 18px;
-          background: linear-gradient(145deg, rgba(21, 18, 35, 0.92), rgba(13, 11, 24, 0.92));
+          background: linear-gradient(145deg, rgba(27, 21, 46, 0.95), rgba(14, 12, 26, 0.95));
           min-height: 180px;
           display: grid;
-          gap: 10px;
+          gap: 14px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 30px rgba(0, 0, 0, 0.24);
         }
 
         .preview-panel p {
           margin: 0;
           color: #cebee9;
           line-height: 1.45;
+        }
+
+        .preview-frame {
+          border-radius: 14px;
+          border: 1px solid rgba(232, 214, 255, 0.26);
+          background: radial-gradient(circle at 20% 20%, rgba(245, 204, 146, 0.18), transparent 45%),
+            radial-gradient(circle at 85% 10%, rgba(167, 117, 255, 0.2), transparent 38%),
+            linear-gradient(170deg, rgba(29, 22, 48, 0.92), rgba(18, 15, 30, 0.92));
+          min-height: 138px;
+          padding: 14px;
+          display: grid;
+          align-content: space-between;
+          gap: 14px;
+        }
+
+        .preview-layout {
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 8px;
+          min-height: 62px;
+        }
+
+        .preview-block {
+          border-radius: 10px;
+          border: 1px solid rgba(243, 232, 255, 0.18);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(248, 237, 255, 0.03));
+        }
+
+        .preview-block.secondary {
+          background: linear-gradient(180deg, rgba(184, 151, 255, 0.2), rgba(255, 255, 255, 0.05));
+        }
+
+        .preview-chip-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .preview-chip {
+          font-size: 11px;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          border-radius: 999px;
+          padding: 5px 9px;
+          color: #f4eafe;
+          border: 1px solid rgba(238, 221, 255, 0.25);
+          background: rgba(245, 232, 255, 0.08);
         }
 
         .preview-tag {
@@ -794,6 +893,17 @@ function EventResults({ result }) {
     <div className="result-grid event-grid">
       <article className="preview-panel">
         <span className="preview-tag">Styled Preview</span>
+        <div className="preview-frame" aria-hidden="true">
+          <div className="preview-layout">
+            <div className="preview-block" />
+            <div className="preview-block secondary" />
+          </div>
+          <div className="preview-chip-row">
+            <span className="preview-chip">Tablescape</span>
+            <span className="preview-chip">Lighting Wash</span>
+            <span className="preview-chip">Guest Flow</span>
+          </div>
+        </div>
         <p>{result.styledPreviewPrompt || "A styled preview prompt will appear here."}</p>
       </article>
       <ResultCard title="Lighting Plan" items={[["Recommendations", result.lighting]]} />
