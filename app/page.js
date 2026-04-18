@@ -1038,31 +1038,38 @@ export default function HomePage() {
           gap: 22px;
           min-width: 0;
           max-width: 100%;
-          overflow: visible;
+          width: 100%;
+          overflow-x: hidden;
+        }
+        .results > * {
+          min-width: 0;
+          max-width: 100%;
         }
         .results-header {
           display: flex;
           flex-wrap: wrap;
           justify-content: space-between;
-          align-items: flex-end;
+          align-items: flex-start;
           gap: 14px;
           border-bottom: 1px solid rgba(190, 170, 145, 0.4);
           padding-bottom: 16px;
           width: 100%;
           max-width: 100%;
           min-width: 0;
+          overflow-wrap: anywhere;
         }
         .results-header-main {
           min-width: 0;
           max-width: 100%;
-          flex: 1 1 300px;
+          flex: 1 1 320px;
         }
         .results-header-actions {
           min-width: 0;
           max-width: 100%;
-          flex: 0 0 auto;
+          flex: 1 1 220px;
           display: flex;
           justify-content: flex-end;
+          width: 100%;
         }
         .results-kicker {
           margin: 0 0 6px;
@@ -1098,7 +1105,10 @@ export default function HomePage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
+          flex-shrink: 1;
+          width: fit-content;
+          overflow-wrap: anywhere;
+          word-break: break-word;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 22px rgba(35, 103, 93, 0.27);
         }
         .download-btn:hover:not(:disabled) {
@@ -1154,7 +1164,12 @@ export default function HomePage() {
           min-width: 0;
           width: 100%;
           max-width: 100%;
+          overflow-x: hidden;
           overflow-wrap: anywhere;
+        }
+        .result-grid > * {
+          min-width: 0;
+          max-width: 100%;
         }
         .result-card {
           width: 100%;
@@ -1165,7 +1180,8 @@ export default function HomePage() {
           padding: 18px;
           background: linear-gradient(162deg, rgba(255, 252, 247, 0.98), rgba(245, 236, 225, 0.95));
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 20px rgba(128, 103, 72, 0.09);
-          overflow: visible;
+          overflow: hidden;
+          box-sizing: border-box;
         }
         .result-card h3 {
           margin: 0 0 14px;
@@ -1173,6 +1189,7 @@ export default function HomePage() {
           font-size: 1.12rem;
           letter-spacing: 0.01em;
           overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .event-hero {
@@ -1198,6 +1215,8 @@ export default function HomePage() {
           font-size: clamp(1.12rem, 2.4vw, 1.5rem);
           color: #3c3027;
           text-wrap: balance;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
         .event-hero-subtitle {
           margin: 0;
@@ -1283,6 +1302,8 @@ export default function HomePage() {
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 18px 26px rgba(121, 99, 71, 0.12);
           min-width: 0;
           width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
           overflow: hidden;
         }
         .preview-panel p {
@@ -1304,6 +1325,8 @@ export default function HomePage() {
           align-content: space-between;
           gap: 14px;
           min-width: 0;
+          max-width: 100%;
+          box-sizing: border-box;
           overflow: hidden;
         }
         .preview-image-shell {
@@ -1319,6 +1342,8 @@ export default function HomePage() {
           box-shadow: 0 12px 22px rgba(124, 101, 72, 0.16);
           width: 100%;
           max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
         .preview-image {
           display: block;
@@ -1332,6 +1357,7 @@ export default function HomePage() {
           display: grid;
           gap: 10px;
           min-width: 0;
+          max-width: 100%;
         }
         .preview-prompt {
           border-radius: 12px;
@@ -1348,6 +1374,8 @@ export default function HomePage() {
           margin: 0;
           font-size: 0.85rem;
           color: #7e6e60;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
         .preview-layout {
           display: grid;
@@ -1370,6 +1398,7 @@ export default function HomePage() {
           flex-wrap: wrap;
           gap: 6px;
           min-width: 0;
+          max-width: 100%;
         }
         .preview-chip {
           font-size: 11px;
@@ -1423,6 +1452,7 @@ export default function HomePage() {
           }
           .results-header-actions {
             width: 100%;
+            justify-content: stretch;
           }
           .download-btn {
             width: 100%;
