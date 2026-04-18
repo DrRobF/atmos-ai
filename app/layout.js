@@ -15,7 +15,6 @@ export default function RootLayout({ children }) {
             padding: 0;
             width: 100%;
             max-width: 100%;
-            overflow-x: clip;
             background: #f5ecdf;
             color: #342d28;
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
