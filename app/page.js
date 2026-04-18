@@ -665,8 +665,15 @@ export default function HomePage() {
                       options={eventTypeOptions}
                       selected={eventType}
                       onSelect={setEventType}
+                      diagnosticSelectedPrefix
                     />
-                    <Selector label="Style" options={eventStyleOptions} selected={eventStyle} onSelect={setEventStyle} />
+                    <Selector
+                      label="Style"
+                      options={eventStyleOptions}
+                      selected={eventStyle}
+                      onSelect={setEventStyle}
+                      diagnosticSelectedPrefix
+                    />
                     <div className="field notes-field">
                       <label htmlFor="eventNotes">Planner Notes (optional)</label>
                       <textarea
@@ -704,6 +711,7 @@ export default function HomePage() {
         </section>
 
         <section className="results card">
+          <p className="debug-report-label">DEBUG REPORT PATH ACTIVE</p>
           <div className="results-header">
             <div className="results-header-main">
               <p className="results-kicker">Final Report</p>
@@ -716,7 +724,7 @@ export default function HomePage() {
                 onClick={handleDownloadPdf}
                 disabled={!result || isLoading || isDownloadingPdf}
               >
-                {isDownloadingPdf ? "Preparing PDF..." : "Download PDF"}
+                {isDownloadingPdf ? "Preparing PDF..." : "DOWNLOAD PDF HERE"}
               </button>
             </div>
           </div>
@@ -1038,6 +1046,12 @@ export default function HomePage() {
           color: #f6fffd;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(20, 128, 111, 0.28), 0 10px 18px rgba(10, 76, 65, 0.34);
         }
+        .chip.diagnostic-active-chip {
+          background: #0057ff;
+          border: 4px solid #00114f;
+          color: #ffffff;
+          box-shadow: 0 0 0 4px rgba(0, 87, 255, 0.35);
+        }
 
         .cta-row {
           margin-top: 20px;
@@ -1081,6 +1095,20 @@ export default function HomePage() {
           min-width: 0;
           max-width: 100%;
           overflow: visible;
+          outline: 4px dashed #ff1f1f;
+          outline-offset: -2px;
+        }
+        .debug-report-label {
+          margin: 0;
+          padding: 8px 10px;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.03em;
+          color: #202020;
+          background: #ffef57;
+          border: 2px solid #111;
+          border-radius: 8px;
+          width: fit-content;
         }
         .results-header {
           display: flex;
@@ -1125,17 +1153,18 @@ export default function HomePage() {
         }
 
         .download-btn {
-          border: 1px solid rgba(67, 136, 127, 0.72);
-          color: #fff;
-          background: linear-gradient(160deg, #3f9f92, #2f7f72);
-          border-radius: 999px;
+          border: 3px solid #22004a;
+          color: #ffffff;
+          background: #ff2d55;
+          border-radius: 12px;
           padding: 11px 20px;
           cursor: pointer;
-          font-weight: 600;
-          font-size: 0.92rem;
+          font-weight: 800;
+          font-size: 0.94rem;
+          letter-spacing: 0.04em;
           transition: all 0.2s ease;
           max-width: 100%;
-          white-space: nowrap;
+          white-space: normal;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -1195,6 +1224,8 @@ export default function HomePage() {
           max-width: 100%;
           min-width: 0;
           border: 1px solid rgba(185, 163, 136, 0.34);
+          outline: 4px dashed #1f4fff;
+          outline-offset: -2px;
           border-radius: 20px;
           padding: 18px;
           background: linear-gradient(162deg, rgba(255, 252, 247, 0.98), rgba(245, 236, 225, 0.95));
@@ -1460,7 +1491,7 @@ export default function HomePage() {
           }
           .download-btn {
             width: 100%;
-            white-space: normal;
+            display: flex;
           }
           button[type="submit"] {
             max-width: 100%;
@@ -1471,7 +1502,7 @@ export default function HomePage() {
   );
 }
 
-function Selector({ label, options, selected, onSelect }) {
+function Selector({ label, options, selected, onSelect, diagnosticSelectedPrefix = false }) {
   return (
     <div className="selector">
       <label>{label}</label>
@@ -1480,12 +1511,14 @@ function Selector({ label, options, selected, onSelect }) {
           <button
             key={option}
             type="button"
-            className={`chip ${selected === option ? "active" : ""}`}
+            className={`chip ${selected === option ? "active" : ""} ${
+              selected === option && diagnosticSelectedPrefix ? "diagnostic-active-chip" : ""
+            }`}
             aria-pressed={selected === option}
             data-selected={selected === option ? "true" : "false"}
             onClick={() => onSelect(option)}
           >
-            {option}
+            {selected === option && diagnosticSelectedPrefix ? `SELECTED: ${option}` : option}
           </button>
         ))}
       </div>
