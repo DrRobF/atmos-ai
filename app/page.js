@@ -350,11 +350,18 @@ export default function HomePage() {
         {isLoading && (
           <div className="loading-state">
             <div className="spinner" />
-            <p>
-              {mode === "event"
-                ? "Analyzing your venue and preparing a premium event styling plan..."
-                : "Analyzing your space and composing your atmosphere plan..."}
-            </p>
+            <div>
+              <p>
+                {mode === "event"
+                  ? "Analyzing your venue and preparing a premium event styling plan..."
+                  : "Analyzing your space and composing your atmosphere plan..."}
+              </p>
+              {mode === "event" && (
+                <p className="loading-preview-note">
+                  Creating a styled concept preview render for your event...
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -654,6 +661,12 @@ export default function HomePage() {
           gap: 12px;
         }
 
+        .loading-preview-note {
+          margin: 6px 0 0;
+          font-size: 0.84rem;
+          color: #bca6ea;
+        }
+
         .spinner {
           width: 18px;
           height: 18px;
@@ -729,6 +742,44 @@ export default function HomePage() {
           gap: 14px;
         }
 
+        .preview-image-shell {
+          border-radius: 14px;
+          border: 1px solid rgba(232, 214, 255, 0.26);
+          background: linear-gradient(160deg, rgba(17, 14, 29, 0.95), rgba(10, 9, 18, 0.95));
+          overflow: hidden;
+          min-height: 220px;
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+        }
+
+        .preview-image {
+          display: block;
+          width: 100%;
+          height: auto;
+          min-height: 220px;
+          object-fit: cover;
+        }
+
+        .preview-fallback {
+          display: grid;
+          gap: 10px;
+        }
+
+        .preview-prompt {
+          border-radius: 12px;
+          border: 1px solid rgba(227, 208, 255, 0.2);
+          background: rgba(245, 231, 255, 0.04);
+          padding: 12px;
+          color: #decfff;
+          font-size: 0.92rem;
+          line-height: 1.5;
+        }
+
+        .preview-caption {
+          margin: 0;
+          font-size: 0.85rem;
+          color: #bca6ea;
+        }
+
         .preview-layout {
           display: grid;
           grid-template-columns: 1.15fr 0.85fr;
@@ -776,6 +827,7 @@ export default function HomePage() {
             transform: rotate(360deg);
           }
         }
+
 
         @media (min-width: 820px) {
           .atmos-page {
@@ -889,22 +941,43 @@ function PersonalResults({ result }) {
 }
 
 function EventResults({ result }) {
+  const hasStyledPreviewImage = Boolean(result.styledPreviewImageUrl);
+  const hasStyledPreviewPrompt = Boolean(result.styledPreviewPrompt);
+
   return (
     <div className="result-grid event-grid">
       <article className="preview-panel">
         <span className="preview-tag">Styled Preview</span>
-        <div className="preview-frame" aria-hidden="true">
-          <div className="preview-layout">
-            <div className="preview-block" />
-            <div className="preview-block secondary" />
+        {hasStyledPreviewImage ? (
+          <div className="preview-image-shell">
+            <img
+              src={result.styledPreviewImageUrl}
+              alt="Generated styled event concept preview"
+              className="preview-image"
+            />
           </div>
-          <div className="preview-chip-row">
-            <span className="preview-chip">Tablescape</span>
-            <span className="preview-chip">Lighting Wash</span>
-            <span className="preview-chip">Guest Flow</span>
+        ) : (
+          <div className="preview-fallback">
+            <div className="preview-frame" aria-hidden="true">
+              <div className="preview-layout">
+                <div className="preview-block" />
+                <div className="preview-block secondary" />
+              </div>
+              <div className="preview-chip-row">
+                <span className="preview-chip">Tablescape</span>
+                <span className="preview-chip">Lighting Wash</span>
+                <span className="preview-chip">Guest Flow</span>
+              </div>
+            </div>
+            <p className="preview-caption">
+              Preview image generation is unavailable right now. Use this visual concept prompt.
+            </p>
           </div>
-        </div>
-        <p>{result.styledPreviewPrompt || "A styled preview prompt will appear here."}</p>
+        )}
+        {hasStyledPreviewPrompt && <p className="preview-prompt">{result.styledPreviewPrompt}</p>}
+        {!hasStyledPreviewPrompt && (
+          <p className="preview-prompt">A styled preview concept prompt will appear here.</p>
+        )}
       </article>
       <ResultCard title="Lighting Plan" items={[["Recommendations", result.lighting]]} />
       <ResultCard title="Decor Placement" items={[["Recommendations", result.decorPlacement]]} />
