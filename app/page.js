@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const modeOptions = [
   { value: "personal", label: "Personal Mode" },
@@ -115,6 +115,19 @@ async function toDataUrl(sourceUrl) {
     reader.onloadend = () => resolve(reader.result?.toString() ?? "");
     reader.onerror = () => reject(new Error("Image conversion failed."));
     reader.readAsDataURL(blob);
+  });
+}
+
+function fileToDataUrl(file) {
+  if (!file) {
+    return Promise.resolve("");
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result?.toString() ?? "");
+    reader.onerror = () => reject(new Error("Image conversion failed."));
+    reader.readAsDataURL(file);
   });
 }
 
@@ -392,33 +405,76 @@ export default function HomePage() {
     return Boolean(description.trim() || imageFile);
   }, [mode, isLoading, description, imageFile, venueImageFile]);
 
-  async function readImageFile(file, onPreview) {
-    if (!file) {
-      onPreview("");
-      return;
-    }
+  useEffect(
+    () => () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    },
+    [imagePreview],
+  );
 
-    const reader = new FileReader();
-    reader.onload = () => onPreview(reader.result?.toString() ?? "");
-    reader.readAsDataURL(file);
-  }
+  useEffect(
+    () => () => {
+      if (venueImagePreview) {
+        URL.revokeObjectURL(venueImagePreview);
+      }
+    },
+    [venueImagePreview],
+  );
+
+  useEffect(
+    () => () => {
+      if (referenceImagePreview) {
+        URL.revokeObjectURL(referenceImagePreview);
+      }
+    },
+    [referenceImagePreview],
+  );
 
   async function handlePersonalImageChange(event) {
     const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      return;
+    }
+
     setImageFile(file);
-    readImageFile(file, setImagePreview);
+    setImagePreview((currentPreview) => {
+      if (currentPreview) {
+        URL.revokeObjectURL(currentPreview);
+      }
+      return URL.createObjectURL(file);
+    });
   }
 
   async function handleVenueImageChange(event) {
     const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      return;
+    }
+
     setVenueImageFile(file);
-    readImageFile(file, setVenueImagePreview);
+    setVenueImagePreview((currentPreview) => {
+      if (currentPreview) {
+        URL.revokeObjectURL(currentPreview);
+      }
+      return URL.createObjectURL(file);
+    });
   }
 
   async function handleReferenceImageChange(event) {
     const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      return;
+    }
+
     setReferenceImageFile(file);
-    readImageFile(file, setReferenceImagePreview);
+    setReferenceImagePreview((currentPreview) => {
+      if (currentPreview) {
+        URL.revokeObjectURL(currentPreview);
+      }
+      return URL.createObjectURL(file);
+    });
   }
 
   async function handleSubmit(event) {
@@ -431,8 +487,8 @@ export default function HomePage() {
         mode === "event"
           ? {
               mode,
-              venueImage: venueImagePreview || null,
-              referenceImage: referenceImagePreview || null,
+              venueImage: venueImageFile ? await fileToDataUrl(venueImageFile) : null,
+              referenceImage: referenceImageFile ? await fileToDataUrl(referenceImageFile) : null,
               eventType,
               eventStyle,
               notes: eventNotes,
@@ -443,7 +499,7 @@ export default function HomePage() {
               mood,
               time,
               setting,
-              image: imagePreview || null,
+              image: imageFile ? await fileToDataUrl(imageFile) : null,
             };
 
       const response = await fetch("/api/atmosphere", {
