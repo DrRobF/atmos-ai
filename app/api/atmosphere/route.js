@@ -160,16 +160,27 @@ async function buildPersonalAtmosphere({ description = "", mood = "Relaxed", tim
 
 function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
   const plannerNotes = notes?.trim() || "No additional planner notes.";
+  const eventTypeLower = typeof eventType === "string" ? eventType.toLowerCase() : "";
+  const isDaylightEvent = eventTypeLower.includes("bridal shower") || eventTypeLower.includes("brunch");
+  const isEveningEvent = eventTypeLower.includes("cocktail") || eventTypeLower.includes("evening");
+  const timeOfDayDirection = isDaylightEvent
+    ? "Time-of-day tone: prioritize soft daylight, airy ambience, and natural window-balanced light for a fresh daytime feel."
+    : isEveningEvent
+      ? "Time-of-day tone: use warmer, dimmer evening lighting layers while preserving realistic exposure and detail."
+      : "Time-of-day tone: match lighting color and intensity to the stated event type, avoiding default dramatic evening grading unless explicitly requested.";
 
   return [
     `Scene overview: Cinematic luxury ${eventType} in a ${eventStyle} direction, using the exact venue architecture and proportions from the analyzed photo.`,
     "Focal point: the main table must be clearly visible in the center landing and read as the primary composition at first glance.",
     "Lighting: columns must show visible uplighting, with layered ambient wash and focused highlights that guide the eye toward the main table.",
-    "Supporting elements: hydrangea arrangements must be prominent, with key decor grouped in visually clear clusters and evenly spaced supporting pieces around circulation paths.",
+    "Supporting elements: hydrangea arrangements must be prominent, with key decor grouped in visually clear clusters and supporting pieces that feel naturally placed rather than perfectly uniform.",
     "Spatial flow: guests should visually read a clear path from entry to focal table to secondary gathering zones, without clutter or blocked sightlines.",
-    "Realism cues: keep materials and installation believable with natural variation, slight asymmetry, and real-world imperfection instead of overly perfect symmetry.",
+    "Realism cues: keep materials and installation believable with slight floral placement variation, subtle asymmetry in decor, and real-world imperfection; avoid overly perfect spacing unless critical for function or focal hierarchy.",
     "Mood/style: editorial, immersive, elevated, and photographable; premium interior event styling with rich but realistic shadows and controlled highlight roll-off.",
-    "Use visually interpretable spacing language (evenly spaced, clustered, staggered) instead of technical measurement-heavy instructions unless critical to composition.",
+    "Use visually interpretable spacing language (clustered, staggered, intentionally balanced) instead of technical measurement-heavy instructions unless critical to composition.",
+    "Do not include signage text baked into architecture (for example words on walls, doors, or permanent surfaces); keep the environment natural and believable.",
+    timeOfDayDirection,
+    "Preserve current strengths: maintain strong style alignment, clear centered composition, intentional lighting direction, and clear focal hierarchy.",
     "Avoid diagrams, labels, overlays, or AR graphics; render a convincing in-room design preview still.",
     `Plan alignment - lighting: ${eventPlan.lighting}`,
     `Plan alignment - decor: ${eventPlan.decorPlacement}`,
