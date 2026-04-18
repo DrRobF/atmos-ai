@@ -52,13 +52,13 @@ function getReportSections(result) {
 
   if (result.mode === "event") {
     return [
-      { title: "Atmosphere", items: [["Summary", result.designNotes]] },
-      { title: "Layout", items: [["Direction", result.decorPlacement]] },
-      { title: "Lighting", items: [["Direction", result.lighting]] },
-      { title: "Floral & Decor", items: [["Direction", result.floralDecor]] },
-      { title: "Sound", items: [["Direction", result.music]] },
+      { title: "Event Vision", items: [["Concept", result.designNotes]] },
+      { title: "The Setup", items: [["Direction", result.decorPlacement]] },
+      { title: "Lighting Mood", items: [["Direction", result.lighting]] },
+      { title: "Signature Styling", items: [["Direction", result.floralDecor]] },
+      { title: "The Energy", items: [["Direction", result.music]] },
       { title: "Guest Flow", items: [["Direction", result.roomFlow]] },
-      { title: "Signature Move", items: [["Highlight", result.oneSmartMove]] },
+      { title: "The Moment", items: [["Highlight", result.oneSmartMove]] },
     ];
   }
 
@@ -223,8 +223,8 @@ function toConciseSentence(value, fallback = "—") {
     return fallback;
   }
   const parts = text.match(/[^.!?]+[.!?]?/g) || [];
-  const trimmed = parts[0]?.trim() || text;
-  return trimmed.length > 160 ? `${trimmed.slice(0, 157)}...` : trimmed;
+  const trimmed = parts.slice(0, 2).join(" ").trim() || text;
+  return trimmed.length > 240 ? `${trimmed.slice(0, 237)}...` : trimmed;
 }
 
 function compactEventResult(result) {
@@ -256,27 +256,55 @@ async function createReportPdf({ result, mode }) {
   const allLines = [
     {
       text: mode === "event" ? "Atmos AI Event Concept Brief" : "Atmos AI Personal Atmosphere Brief",
-      size: 18,
+      size: 19,
       bold: true,
-      y: 794,
+      y: 792,
       x: 44,
-      color: "0.19 0.17 0.16 rg",
+      color: "0.20 0.17 0.14 rg",
     },
     {
       text: `Generated ${new Date().toLocaleString()}`,
       size: 10,
       bold: false,
-      y: 776,
+      y: 772,
       x: 44,
-      color: "0.45 0.40 0.35 rg",
+      color: "0.45 0.39 0.34 rg",
     },
   ];
-  if (mode === "event" && result.styledPreviewImageUrl) {
-    try {
-      await toDataUrl(result.styledPreviewImageUrl);
-      allLines.push({ text: "Styled preview image is included in-app with this concept brief.", size: 10, bold: false });
-    } catch {
-      allLines.push({ text: "Styled preview image unavailable; concise brief exported.", size: 10, bold: false });
+
+  if (mode === "event") {
+    allLines.push({
+      command:
+        "q 0.97 0.94 0.90 rg 44 724 507 36 re f Q q 0.74 0.64 0.54 RG 1 w 44 724 507 36 re S Q",
+    });
+    allLines.push({
+      text: "Curated as a luxury concept brief with layout, mood, and guest-experience guidance.",
+      size: 10,
+      bold: false,
+      y: 744,
+      x: 58,
+      color: "0.34 0.29 0.24 rg",
+    });
+
+    if (result.styledPreviewImageUrl) {
+      try {
+        await toDataUrl(result.styledPreviewImageUrl);
+        allLines.push({
+          text: "Styled preview image is available in the app and referenced by this PDF brief.",
+          size: 9,
+          y: 713,
+          x: 58,
+          color: "0.40 0.35 0.30 rg",
+        });
+      } catch {
+        allLines.push({
+          text: "Styled preview image could not be embedded; narrative brief remains complete.",
+          size: 9,
+          y: 713,
+          x: 58,
+          color: "0.40 0.35 0.30 rg",
+        });
+      }
     }
   }
 
@@ -287,35 +315,45 @@ async function createReportPdf({ result, mode }) {
           section.items.map(([label, value]) => [`${section.title} — ${label}`, toConciseSentence(value)]),
         );
 
-  let nextY = 744;
-  sections.forEach(([title, content]) => {
-    const wrapped = wrapText(content, 84).slice(0, 3);
-    const cardHeight = 46 + wrapped.length * 14;
-    if (nextY - cardHeight < 60) {
+  let nextY = mode === "event" ? 684 : 742;
+  sections.forEach(([title, content], idx) => {
+    const wrapped = wrapText(content, 82).slice(0, 4);
+    const cardHeight = 54 + wrapped.length * 14;
+    if (nextY - cardHeight < 64) {
       allLines.push({ command: "__PAGE_BREAK__" });
       nextY = 770;
     }
     const cardTop = nextY;
     const cardBottom = nextY - cardHeight;
+    const accent = [
+      "0.45 0.63 0.59 rg",
+      "0.56 0.62 0.73 rg",
+      "0.62 0.67 0.56 rg",
+      "0.66 0.59 0.53 rg",
+      "0.61 0.56 0.69 rg",
+      "0.63 0.63 0.52 rg",
+      "0.58 0.67 0.72 rg",
+    ][idx % 7];
+
     allLines.push({
-      command: `q 0.98 0.96 0.93 rg 44 ${cardBottom} 507 ${cardHeight} re f Q q 0.88 0.83 0.76 RG 1 w 44 ${cardBottom} 507 ${cardHeight} re S Q`,
+      command: `q 0.99 0.97 0.94 rg 44 ${cardBottom} 507 ${cardHeight} re f Q q 0.87 0.80 0.72 RG 1 w 44 ${cardBottom} 507 ${cardHeight} re S Q q ${accent} 44 ${cardBottom} 8 ${cardHeight} re f Q`,
     });
     allLines.push({
       text: title,
       size: 12,
       bold: true,
-      y: cardTop - 18,
-      x: 58,
-      color: "0.33 0.28 0.24 rg",
+      y: cardTop - 20,
+      x: 62,
+      color: "0.30 0.25 0.21 rg",
     });
     wrapped.forEach((line, index) => {
       allLines.push({
         text: line,
         size: 10,
         bold: false,
-        y: cardTop - 38 - index * 14,
-        x: 58,
-        color: "0.28 0.25 0.22 rg",
+        y: cardTop - 40 - index * 14,
+        x: 62,
+        color: "0.29 0.24 0.20 rg",
       });
     });
     nextY -= cardHeight + 14;
@@ -368,10 +406,11 @@ async function downloadReportPdf({ result, mode }) {
   URL.revokeObjectURL(blobUrl);
 }
 
+const eventSectionAccents = ["mint", "blue", "sage", "taupe", "plum", "olive", "sky"];
+
 export default function HomePage() {
   const [mode, setMode] = useState("personal");
 
-  // Personal mode fields
   const [description, setDescription] = useState("");
   const [mood, setMood] = useState(moodOptions[0]);
   const [time, setTime] = useState(timeOptions[0]);
@@ -379,7 +418,6 @@ export default function HomePage() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
 
-  // Event mode fields
   const [venueImageFile, setVenueImageFile] = useState(null);
   const [venueImagePreview, setVenueImagePreview] = useState("");
   const [referenceImageFile, setReferenceImageFile] = useState(null);
@@ -394,85 +432,58 @@ export default function HomePage() {
   const [result, setResult] = useState(initialResult);
 
   const canSubmit = useMemo(() => {
-    if (isLoading) {
-      return false;
-    }
-
-    if (mode === "event") {
-      return Boolean(venueImageFile);
-    }
-
+    if (isLoading) return false;
+    if (mode === "event") return Boolean(venueImageFile);
     return Boolean(description.trim() || imageFile);
   }, [mode, isLoading, description, imageFile, venueImageFile]);
 
   useEffect(
     () => () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
     },
     [imagePreview],
   );
 
   useEffect(
     () => () => {
-      if (venueImagePreview) {
-        URL.revokeObjectURL(venueImagePreview);
-      }
+      if (venueImagePreview) URL.revokeObjectURL(venueImagePreview);
     },
     [venueImagePreview],
   );
 
   useEffect(
     () => () => {
-      if (referenceImagePreview) {
-        URL.revokeObjectURL(referenceImagePreview);
-      }
+      if (referenceImagePreview) URL.revokeObjectURL(referenceImagePreview);
     },
     [referenceImagePreview],
   );
 
   async function handlePersonalImageChange(event) {
     const file = event.target.files?.[0] ?? null;
-    if (!file) {
-      return;
-    }
-
+    if (!file) return;
     setImageFile(file);
     setImagePreview((currentPreview) => {
-      if (currentPreview) {
-        URL.revokeObjectURL(currentPreview);
-      }
+      if (currentPreview) URL.revokeObjectURL(currentPreview);
       return URL.createObjectURL(file);
     });
   }
 
   async function handleVenueImageChange(event) {
     const file = event.target.files?.[0] ?? null;
-    if (!file) {
-      return;
-    }
-
+    if (!file) return;
     setVenueImageFile(file);
     setVenueImagePreview((currentPreview) => {
-      if (currentPreview) {
-        URL.revokeObjectURL(currentPreview);
-      }
+      if (currentPreview) URL.revokeObjectURL(currentPreview);
       return URL.createObjectURL(file);
     });
   }
 
   async function handleReferenceImageChange(event) {
     const file = event.target.files?.[0] ?? null;
-    if (!file) {
-      return;
-    }
-
+    if (!file) return;
     setReferenceImageFile(file);
     setReferenceImagePreview((currentPreview) => {
-      if (currentPreview) {
-        URL.revokeObjectURL(currentPreview);
-      }
+      if (currentPreview) URL.revokeObjectURL(currentPreview);
       return URL.createObjectURL(file);
     });
   }
@@ -523,10 +534,7 @@ export default function HomePage() {
   }
 
   async function handleDownloadPdf() {
-    if (!result || isDownloadingPdf) {
-      return;
-    }
-
+    if (!result || isDownloadingPdf) return;
     setError("");
     setIsDownloadingPdf(true);
     try {
@@ -539,101 +547,84 @@ export default function HomePage() {
   }
 
   return (
-    <main className="atmos-page">
-      <section className="hero card">
-        <div>
-          <p className="eyebrow">Atmos AI</p>
-          <h1>Design the perfect atmosphere for everyday spaces and standout events.</h1>
-          <p className="subtitle">
-            Personal mode keeps your original vibe blueprint flow. Event mode upgrades Atmos into a
-            venue styling assistant for lighting, decor placement, music, and room flow.
-          </p>
-        </div>
+    <main className="page-shell">
+      <div className="page-inner">
+        <section className="hero card">
+          <div className="hero-body">
+            <p className="eyebrow">Atmos AI</p>
+            <h1>Design the perfect atmosphere for everyday spaces and standout events.</h1>
+            <p className="subtitle">
+              Personal mode keeps your original vibe blueprint flow. Event mode upgrades Atmos into a
+              venue styling assistant for lighting, decor placement, music, and room flow.
+            </p>
+          </div>
 
-        <div className="mode-switch" role="tablist" aria-label="Mode switch">
-          {modeOptions.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={mode === item.value}
-              className={`mode-button ${mode === item.value ? "active" : ""}`}
-              onClick={() => {
-                setMode(item.value);
-                setResult(null);
-                setError("");
-              }}
-            >
-              {mode === item.value && <span className="selection-mark">✓</span>}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </section>
+          <div className="mode-switch" role="tablist" aria-label="Mode switch">
+            {modeOptions.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                role="tab"
+                aria-selected={mode === item.value}
+                className={`mode-button ${mode === item.value ? "active" : ""}`}
+                onClick={() => {
+                  setMode(item.value);
+                  setResult(null);
+                  setError("");
+                }}
+              >
+                {mode === item.value && <span className="selection-mark">✓</span>}
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      <section className="builder card">
-        <form onSubmit={handleSubmit}>
-          {mode === "personal" ? (
-            <>
-              <div className="builder-grid">
-                <div className="field image-field">
-                  <label htmlFor="imageUpload">Space Image (optional)</label>
-                  <label className="upload" htmlFor="imageUpload">
-                    <input
-                      id="imageUpload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePersonalImageChange}
+        <section className="builder card">
+          <form onSubmit={handleSubmit} className="bounded-form">
+            {mode === "personal" ? (
+              <>
+                <div className="builder-grid">
+                  <div className="field image-field">
+                    <label htmlFor="imageUpload">Space Image (optional)</label>
+                    <label className="upload" htmlFor="imageUpload">
+                      <input id="imageUpload" type="file" accept="image/*" onChange={handlePersonalImageChange} />
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Uploaded space preview" />
+                      ) : (
+                        <div className="upload-empty">
+                          <strong>Drop an image or click to upload</strong>
+                          <span>Bedroom, desk, car, studio corner—anything you want to transform.</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="description">Describe the space or target vibe (optional)</label>
+                    <textarea
+                      id="description"
+                      value={description}
+                      onChange={(event) => setDescription(event.target.value)}
+                      placeholder="Example: I want this room to feel calm, intimate, and expensive at night."
+                      rows={8}
                     />
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Uploaded space preview" />
-                    ) : (
-                      <div className="upload-empty">
-                        <strong>Drop an image or click to upload</strong>
-                        <span>
-                          Bedroom, desk, car, studio corner—anything you want to transform.
-                        </span>
-                      </div>
-                    )}
-                  </label>
+                  </div>
                 </div>
 
-                <div className="field">
-                  <label htmlFor="description">Describe the space or target vibe (optional)</label>
-                  <textarea
-                    id="description"
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    placeholder="Example: I want this room to feel calm, intimate, and expensive at night."
-                    rows={8}
-                  />
+                <div className="control-grid">
+                  <Selector label="Mood" options={moodOptions} selected={mood} onSelect={setMood} />
+                  <Selector label="Time" options={timeOptions} selected={time} onSelect={setTime} />
+                  <Selector label="Setting" options={settingOptions} selected={setting} onSelect={setSetting} />
                 </div>
-              </div>
-
-              <div className="control-grid">
-                <Selector label="Mood" options={moodOptions} selected={mood} onSelect={setMood} />
-                <Selector label="Time" options={timeOptions} selected={time} onSelect={setTime} />
-                <Selector
-                  label="Setting"
-                  options={settingOptions}
-                  selected={setting}
-                  onSelect={setSetting}
-                />
-              </div>
-            </>
-          ) : (
-            <>
+              </>
+            ) : (
               <div className="event-form-shell">
                 <div className="builder-grid">
                   <div className="field image-field">
                     <label htmlFor="venueImageUpload">Venue Image</label>
                     <label className="upload" htmlFor="venueImageUpload">
-                      <input
-                        id="venueImageUpload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleVenueImageChange}
-                      />
+                      <input id="venueImageUpload" type="file" accept="image/*" onChange={handleVenueImageChange} />
                       {venueImagePreview ? (
                         <img src={venueImagePreview} alt="Uploaded venue preview" />
                       ) : (
@@ -659,9 +650,7 @@ export default function HomePage() {
                       ) : (
                         <div className="upload-empty">
                           <strong>Optional style reference image</strong>
-                          <span>
-                            Upload inspiration for tablescape, floral direction, or overall styling.
-                          </span>
+                          <span>Upload inspiration for tablescape, floral direction, or overall styling.</span>
                         </div>
                       )}
                     </label>
@@ -677,12 +666,7 @@ export default function HomePage() {
                       selected={eventType}
                       onSelect={setEventType}
                     />
-                    <Selector
-                      label="Style"
-                      options={eventStyleOptions}
-                      selected={eventStyle}
-                      onSelect={setEventStyle}
-                    />
+                    <Selector label="Style" options={eventStyleOptions} selected={eventStyle} onSelect={setEventStyle} />
                     <div className="field notes-field">
                       <label htmlFor="eventNotes">Planner Notes (optional)</label>
                       <textarea
@@ -696,212 +680,789 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </>
-          )}
+            )}
 
-          <div className="cta-row">
-            <button type="submit" disabled={!canSubmit}>
-              {isLoading
-                ? mode === "event"
-                  ? "Designing Event Atmosphere..."
-                  : "Building Atmosphere..."
-                : mode === "event"
-                  ? "Build Event Atmosphere"
-                  : "Build My Atmosphere"}
-            </button>
-            <p>
-              {mode === "event"
-                ? "Venue image is required. Add a style reference image to improve styling adaptation."
-                : "Use image, text, or both together for the best result."}
-            </p>
-          </div>
-
-          {error && <p className="error">{error}</p>}
-        </form>
-      </section>
-
-      <section className="results card">
-        <div className="results-header">
-          <div className="results-header-main">
-            <p className="results-kicker">Final Report</p>
-            <h2>{mode === "event" ? "Your Event Concept Brief" : "Your Atmosphere Blueprint"}</h2>
-          </div>
-          <div className="results-header-actions">
-            <button
-              type="button"
-              className="download-btn"
-              onClick={handleDownloadPdf}
-              disabled={!result || isLoading || isDownloadingPdf}
-            >
-              {isDownloadingPdf ? "Preparing PDF..." : "Download PDF"}
-            </button>
-          </div>
-        </div>
-
-        {!result && !isLoading && (
-          <div className="empty-state">
-            <p>
-              {mode === "event" ? (
-                <>
-                  No event blueprint yet. Add your venue details above and click
-                  <strong> Build Event Atmosphere</strong>.
-                </>
-              ) : (
-                <>
-                  No blueprint yet. Add your inputs above and click
-                  <strong> Build My Atmosphere</strong>.
-                </>
-              )}
-            </p>
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="loading-state">
-            <div className="spinner" />
-            <div>
+            <div className="cta-row">
+              <button type="submit" disabled={!canSubmit}>
+                {isLoading
+                  ? mode === "event"
+                    ? "Designing Event Atmosphere..."
+                    : "Building Atmosphere..."
+                  : mode === "event"
+                    ? "Build Event Atmosphere"
+                    : "Build My Atmosphere"}
+              </button>
               <p>
                 {mode === "event"
-                  ? "Analyzing your venue and preparing a premium event styling plan..."
-                  : "Analyzing your space and composing your atmosphere plan..."}
+                  ? "Venue image is required. Add a style reference image to improve styling adaptation."
+                  : "Use image, text, or both together for the best result."}
               </p>
-              {mode === "event" && (
-                <p className="loading-preview-note">
-                  Creating a styled concept preview render for your event...
-                </p>
-              )}
+            </div>
+
+            {error && <p className="error">{error}</p>}
+          </form>
+        </section>
+
+        <section className="results card">
+          <div className="results-header">
+            <div className="results-header-main">
+              <p className="results-kicker">Final Report</p>
+              <h2>{mode === "event" ? "Your Event Concept Brief" : "Your Atmosphere Blueprint"}</h2>
+            </div>
+            <div className="results-header-actions">
+              <button
+                type="button"
+                className="download-btn"
+                onClick={handleDownloadPdf}
+                disabled={!result || isLoading || isDownloadingPdf}
+              >
+                {isDownloadingPdf ? "Preparing PDF..." : "Download PDF"}
+              </button>
             </div>
           </div>
-        )}
 
-        {result && !isLoading && (result.mode === "event" ? <EventResults result={result} /> : <PersonalResults result={result} />)}
-      </section>
+          {!result && !isLoading && (
+            <div className="empty-state">
+              <p>
+                {mode === "event" ? (
+                  <>
+                    No event blueprint yet. Add your venue details above and click
+                    <strong> Build Event Atmosphere</strong>.
+                  </>
+                ) : (
+                  <>
+                    No blueprint yet. Add your inputs above and click
+                    <strong> Build My Atmosphere</strong>.
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="loading-state">
+              <div className="spinner" />
+              <div>
+                <p>
+                  {mode === "event"
+                    ? "Analyzing your venue and preparing a premium event styling plan..."
+                    : "Analyzing your space and composing your atmosphere plan..."}
+                </p>
+                {mode === "event" && (
+                  <p className="loading-preview-note">
+                    Creating a styled concept preview render for your event...
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {result && !isLoading &&
+            (result.mode === "event" ? <EventResults result={result} /> : <PersonalResults result={result} />)}
+        </section>
+      </div>
 
       <style jsx>{`
-        .atmos-page {
+        .page-shell {
           min-height: 100vh;
-          background: radial-gradient(circle at top, #f8f1e6 0%, #f3ebe0 40%, #efe6db 100%);
-          color: #342d28;
-          font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-          padding: 24px;
+          width: 100%;
+          max-width: 100%;
+          padding: 20px clamp(14px, 4vw, 34px) 40px;
+          background: radial-gradient(circle at top, #faf3e8 0%, #f5ecdf 42%, #efe4d8 100%);
+          overflow-x: clip;
+        }
+
+        .page-inner {
+          width: min(1120px, 100%);
+          margin: 0 auto;
           display: grid;
           gap: 22px;
-          max-width: 1100px;
-          margin: 0 auto;
-          width: 100%;
-          overflow-x: hidden;
+          min-width: 0;
+          overflow-x: clip;
         }
 
         .card {
-          background: linear-gradient(155deg, rgba(255, 250, 245, 0.94), rgba(246, 238, 227, 0.92));
-          border: 1px solid rgba(188, 167, 139, 0.34);
-          border-radius: 26px;
-          box-shadow: 0 20px 40px rgba(118, 95, 66, 0.14);
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          overflow: hidden;
+          background: linear-gradient(158deg, rgba(255, 250, 244, 0.97), rgba(246, 237, 225, 0.95));
+          border: 1px solid rgba(188, 168, 143, 0.38);
+          border-radius: 28px;
+          box-shadow: 0 20px 38px rgba(115, 92, 64, 0.14);
+        }
+
+        .hero {
+          padding: clamp(22px, 3.8vw, 34px);
+          display: grid;
+          gap: 20px;
+        }
+        .hero-body {
+          max-width: 820px;
+          min-width: 0;
+        }
+        .eyebrow {
+          color: #938067;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          font-size: 12px;
+          font-weight: 600;
+          margin: 0 0 10px;
+        }
+        h1 {
+          margin: 0;
+          line-height: 1.14;
+          font-size: clamp(1.9rem, 4vw, 2.8rem);
+          text-wrap: balance;
+          overflow-wrap: anywhere;
+        }
+        .subtitle {
+          margin-top: 12px;
+          color: #5d5146;
+          overflow-wrap: anywhere;
+        }
+
+        .mode-switch {
+          display: inline-grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          width: min(430px, 100%);
+          background: linear-gradient(180deg, rgba(241, 231, 217, 0.95), rgba(235, 224, 210, 0.95));
+          padding: 8px;
+          border-radius: 20px;
+          border: 1px solid rgba(182, 162, 136, 0.38);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 10px 24px rgba(128, 106, 80, 0.12);
+        }
+        .mode-button {
+          border: 1px solid rgba(180, 162, 138, 0.45);
+          background: rgba(255, 255, 255, 0.72);
+          color: #4e4338;
+          font-weight: 600;
+          border-radius: 14px;
+          padding: 11px 14px;
+          cursor: pointer;
+          transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .mode-button:hover {
+          transform: translateY(-1px);
+        }
+        .mode-button.active {
+          background: linear-gradient(120deg, #3f9f92 2%, #318877 56%, #246f63 100%);
+          border-color: #1f5f56;
+          color: #fff;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 4px rgba(63, 159, 146, 0.3), 0 10px 18px rgba(43, 106, 96, 0.28);
+        }
+
+        .selection-mark {
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 800;
+          color: #1f5f56;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .builder {
+          padding: clamp(18px, 3vw, 28px);
+        }
+        .bounded-form {
+          width: 100%;
+          min-width: 0;
+        }
+        .builder-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 18px;
+          min-width: 0;
+        }
+        .field {
+          display: grid;
+          gap: 10px;
           min-width: 0;
           max-width: 100%;
-          overflow-x: hidden;
+        }
+        label {
+          color: #5c4f43;
+          font-size: 13px;
+          font-weight: 600;
+          overflow-wrap: anywhere;
+          letter-spacing: 0.02em;
+        }
+        textarea {
+          width: 100%;
+          max-width: 100%;
+          border-radius: 16px;
+          border: 1px solid rgba(191, 169, 143, 0.46);
+          background: rgba(255, 251, 247, 0.95);
+          color: #3f352d;
+          padding: 14px;
+          font-size: 15px;
+          resize: vertical;
+          min-height: 160px;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .notes-field textarea {
+          min-height: 120px;
+        }
+        textarea:focus,
+        button:focus,
+        .chip:focus {
+          outline: 2px solid #3f9f92;
+          outline-offset: 2px;
         }
 
-        .hero { padding: 32px; display: grid; gap: 18px; }
-        .eyebrow { color: #948067; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 600; margin: 0 0 10px; }
-        h1 { margin: 0; line-height: 1.15; font-size: clamp(1.85rem, 4vw, 2.8rem); text-wrap: balance; }
-        .subtitle { margin-top: 12px; color: #5e5247; max-width: 780px; overflow-wrap: anywhere; }
+        .upload {
+          position: relative;
+          border: 1px dashed rgba(176, 152, 123, 0.52);
+          border-radius: 16px;
+          min-height: 210px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 251, 247, 0.88);
+          overflow: hidden;
+          cursor: pointer;
+          min-width: 0;
+          max-width: 100%;
+        }
+        .upload input {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          cursor: pointer;
+          width: 100%;
+          height: 100%;
+        }
+        .upload-empty {
+          text-align: center;
+          display: grid;
+          gap: 6px;
+          padding: 18px;
+          color: #776557;
+          overflow-wrap: anywhere;
+        }
+        .upload img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
 
-        .mode-switch { position: relative; display: inline-grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: min(420px, 100%); background: linear-gradient(180deg, rgba(241, 231, 217, 0.95), rgba(235, 224, 210, 0.95)); padding: 8px; border-radius: 20px; border: 1px solid rgba(182, 162, 136, 0.38); box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 10px 24px rgba(128,106,80,0.12); }
-        .mode-button { border: 1px solid rgba(180, 162, 138, 0.45); background: rgba(255,255,255,0.72); color: #4e4338; font-weight: 600; border-radius: 14px; padding: 11px 14px; cursor: pointer; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
-        .mode-button:hover { transform: translateY(-1px); }
-        .mode-button.active { background: linear-gradient(120deg, #3f9f92 2%, #318877 56%, #246f63 100%); border-color: #1f5f56; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 0 0 4px rgba(63,159,146,.3), 0 10px 18px rgba(43,106,96,.28); }
+        .control-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 14px;
+          margin-top: 18px;
+          min-width: 0;
+          width: 100%;
+        }
+        .event-form-shell {
+          border: 1px solid rgba(187, 166, 140, 0.35);
+          border-radius: 22px;
+          padding: 16px;
+          background: linear-gradient(160deg, rgba(252, 247, 240, 0.95), rgba(242, 232, 219, 0.95));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+          min-width: 0;
+        }
+        .planner-brief {
+          margin-top: 18px;
+          border-radius: 16px;
+          border: 1px solid rgba(194, 174, 150, 0.36);
+          background: rgba(255, 251, 246, 0.82);
+          padding: 14px;
+          min-width: 0;
+        }
+        .planner-kicker {
+          margin: 0;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #8f7962;
+        }
 
-        .selection-mark { width: 18px; height: 18px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #1f5f56; background: rgba(255,255,255,.92); border: 1px solid rgba(255,255,255,.8); }
+        .selector {
+          display: grid;
+          gap: 9px;
+          min-width: 0;
+        }
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: stretch;
+          min-width: 0;
+          width: 100%;
+        }
+        .chip {
+          border: 1px solid rgba(189, 173, 153, 0.6);
+          color: #51453b;
+          padding: 10px 17px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #fffdf9, #f2e9de);
+          cursor: pointer;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          max-width: 100%;
+          min-width: 0;
+          white-space: normal;
+          text-align: center;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          box-shadow: 0 2px 8px rgba(119, 96, 66, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.76);
+        }
+        .chip:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 16px rgba(126, 100, 70, 0.13);
+          border-color: rgba(174, 155, 131, 0.7);
+        }
+        .chip.active {
+          background: linear-gradient(130deg, #5f968f 0%, #4b8079 54%, #3e6f69 100%);
+          border-color: rgba(58, 98, 92, 0.95);
+          color: #f8f9f8;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(88, 140, 132, 0.22), 0 9px 18px rgba(58, 98, 92, 0.3);
+        }
+        .chip.active .selection-mark {
+          width: 16px;
+          height: 16px;
+          font-size: 11px;
+          color: #2f5f59;
+        }
 
-        .builder { padding: 24px; }
-        .builder-grid { display: grid; grid-template-columns: 1fr; gap: 18px; min-width: 0; }
-        .field { display: grid; gap: 10px; min-width: 0; max-width: 100%; }
-        label { color: #5c4f43; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-        textarea { width: 100%; border-radius: 14px; border: 1px solid rgba(191,169,143,.42); background: rgba(255,251,247,.9); color: #3f352d; padding: 14px; font-size: 15px; resize: vertical; min-height: 160px; max-width: 100%; overflow-wrap: anywhere; }
-        .notes-field textarea { min-height: 120px; }
-        textarea:focus, button:focus, .chip:focus { outline: 2px solid #3f9f92; outline-offset: 2px; }
+        .cta-row {
+          margin-top: 20px;
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+        button[type="submit"] {
+          border: none;
+          padding: 14px 18px;
+          border-radius: 14px;
+          background: linear-gradient(120deg, #3f9f92, #2f7f72);
+          color: white;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          width: 100%;
+          max-width: 360px;
+        }
+        button[type="submit"]:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+        }
+        .cta-row p {
+          color: #78695a;
+          margin: 0;
+          font-size: 13px;
+          overflow-wrap: anywhere;
+        }
+        .error {
+          margin: 10px 0 0;
+          color: #b44343;
+          font-size: 14px;
+          overflow-wrap: anywhere;
+        }
 
-        .upload { position: relative; border: 1px dashed rgba(176,152,123,.5); border-radius: 14px; min-height: 210px; display: flex; align-items: center; justify-content: center; background: rgba(255,251,247,.86); overflow: hidden; cursor: pointer; min-width: 0; max-width: 100%; }
-        .upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-        .upload-empty { text-align: center; display: grid; gap: 6px; padding: 18px; color: #776557; overflow-wrap: anywhere; }
-        .upload img { width: 100%; height: 100%; object-fit: cover; }
+        .results {
+          padding: clamp(18px, 3vw, 28px);
+          display: grid;
+          gap: 22px;
+          min-width: 0;
+          max-width: 100%;
+          overflow: hidden;
+        }
+        .results-header {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          align-items: flex-end;
+          gap: 14px;
+          border-bottom: 1px solid rgba(190, 170, 145, 0.4);
+          padding-bottom: 16px;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+        }
+        .results-header-main {
+          min-width: 0;
+          max-width: 100%;
+          flex: 1 1 300px;
+        }
+        .results-header-actions {
+          min-width: 0;
+          max-width: 100%;
+          flex: 0 1 auto;
+          display: flex;
+          justify-content: flex-end;
+        }
+        .results-kicker {
+          margin: 0 0 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #8f7962;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        h2 {
+          margin: 0;
+          font-size: clamp(1.3rem, 2.6vw, 1.66rem);
+          color: #3b322a;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          text-wrap: pretty;
+        }
 
-        .control-grid { display: grid; grid-template-columns: repeat(1, minmax(0,1fr)); gap: 14px; margin-top: 18px; min-width: 0; }
-        .event-form-shell { border: 1px solid rgba(187,166,140,.35); border-radius: 22px; padding: 16px; background: linear-gradient(160deg, rgba(252,247,240,.95), rgba(242,232,219,.95)); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
-        .planner-brief { margin-top: 18px; border-radius: 16px; border: 1px solid rgba(194,174,150,.36); background: rgba(255,251,246,.82); padding: 14px; }
-        .planner-kicker { margin:0; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#8f7962; }
+        .download-btn {
+          border: 1px solid rgba(67, 136, 127, 0.72);
+          color: #fff;
+          background: linear-gradient(160deg, #3f9f92, #2f7f72);
+          border-radius: 999px;
+          padding: 11px 20px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.92rem;
+          transition: all 0.2s ease;
+          max-width: 100%;
+          white-space: nowrap;
+        }
+        .download-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+        .download-btn:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+        }
 
-        .selector { display:grid; gap:8px; min-width:0; }
-        .chips { display:flex; flex-wrap:wrap; gap:8px; min-width:0; max-width:100%; }
-        .chip { border:1px solid rgba(184,164,139,.46); color:#4d4137; padding:9px 14px; border-radius:999px; background:rgba(255,255,255,.8); cursor:pointer; font-weight:500; transition:all .2s ease; display:inline-flex; align-items:center; gap:7px; max-width:100%; min-width:0; white-space:normal; text-align:left; overflow-wrap:anywhere; word-break:break-word; }
-        .chip:hover { transform: translateY(-1px); }
-        .chip.active { background: linear-gradient(120deg, #3f9f92, #2f7f72); border-color:#276b61; color:#fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.34), 0 0 0 4px rgba(63,159,146,.24), 0 8px 18px rgba(47,127,114,.28); }
+        .empty-state,
+        .loading-state {
+          border: 1px solid rgba(190, 168, 142, 0.34);
+          border-radius: 14px;
+          padding: 18px;
+          color: #66594c;
+          background: rgba(255, 251, 246, 0.9);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+        }
+        .loading-preview-note {
+          margin: 6px 0 0;
+          font-size: 0.84rem;
+          color: #79695a;
+        }
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          border: 2px solid rgba(140, 173, 167, 0.32);
+          border-top-color: #3f9f92;
+          animation: spin 0.8s linear infinite;
+          flex: 0 0 auto;
+        }
 
-        .cta-row { margin-top:20px; display:grid; gap:8px; }
-        button[type="submit"] { border:none; padding:14px 18px; border-radius:14px; background: linear-gradient(120deg, #3f9f92, #2f7f72); color:white; font-size:16px; font-weight:700; cursor:pointer; }
-        button[type="submit"]:disabled { opacity:.45; cursor:not-allowed; }
-        .cta-row p { color:#78695a; margin:0; font-size:13px; overflow-wrap:anywhere; }
-        .error { margin:10px 0 0; color:#b44343; font-size:14px; }
+        .result-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 16px;
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
+        }
+        .result-card {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          border: 1px solid rgba(185, 163, 136, 0.34);
+          border-radius: 20px;
+          padding: 18px;
+          background: linear-gradient(162deg, rgba(255, 252, 247, 0.98), rgba(245, 236, 225, 0.95));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 20px rgba(128, 103, 72, 0.09);
+          overflow: hidden;
+        }
+        .result-card h3 {
+          margin: 0 0 14px;
+          color: #4b4036;
+          font-size: 1.12rem;
+          letter-spacing: 0.01em;
+          overflow-wrap: anywhere;
+        }
 
-        .results { padding: 24px; display:grid; gap:22px; overflow-x:hidden; min-width:0; max-width:100%; }
-        .results-header { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; border-bottom:1px solid rgba(190,170,145,.4); padding-bottom:16px; min-width:0; max-width:100%; }
-        .results-header-main { min-width:0; max-width:100%; }
-        .results-header-actions { min-width:0; max-width:100%; display:flex; justify-content:flex-start; }
-        .results-kicker { margin:0 0 6px; text-transform:uppercase; letter-spacing:.1em; color:#8f7962; font-size:11px; font-weight:700; }
-        h2 { margin:0; font-size:1.45rem; color:#3b322a; line-height:1.2; overflow-wrap:anywhere; word-break:break-word; text-wrap:pretty; }
+        .event-hero {
+          border-radius: 20px;
+          border: 1px solid rgba(186, 164, 137, 0.36);
+          background: linear-gradient(120deg, rgba(255, 248, 239, 0.95), rgba(241, 229, 214, 0.96));
+          padding: 18px;
+          display: grid;
+          gap: 10px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          min-width: 0;
+        }
+        .event-hero-eyebrow {
+          margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          font-size: 11px;
+          color: #8d7761;
+          font-weight: 700;
+        }
+        .event-hero-title {
+          margin: 0;
+          font-size: clamp(1.12rem, 2.4vw, 1.5rem);
+          color: #3c3027;
+          text-wrap: balance;
+        }
+        .event-hero-subtitle {
+          margin: 0;
+          color: #5d5045;
+          line-height: 1.52;
+          max-width: 74ch;
+          overflow-wrap: anywhere;
+          text-wrap: pretty;
+        }
 
-        .download-btn { border:1px solid rgba(67,136,127,.65); color:#fff; background:linear-gradient(160deg, #3f9f92, #2f7f72); border-radius:999px; padding:11px 18px; cursor:pointer; font-weight:600; font-size:.92rem; transition:all .2s ease; margin-left:0; max-width:100%; width:fit-content; }
-        .download-btn:hover:not(:disabled){ transform:translateY(-1px); }
-        .download-btn:disabled{ opacity:.45; cursor:not-allowed; }
+        .event-brief-card {
+          position: relative;
+          padding-left: 16px;
+        }
+        .event-brief-card::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 8px;
+          border-radius: 12px;
+          background: #86b9b0;
+        }
+        .event-brief-card.blue::before {
+          background: #95a9cb;
+        }
+        .event-brief-card.sage::before {
+          background: #9eb78a;
+        }
+        .event-brief-card.taupe::before {
+          background: #b79f90;
+        }
+        .event-brief-card.plum::before {
+          background: #a89bc2;
+        }
+        .event-brief-card.olive::before {
+          background: #b2af7d;
+        }
+        .event-brief-card.sky::before {
+          background: #90b4be;
+        }
+        .brief-eyebrow {
+          margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-size: 11px;
+          color: #8d7862;
+          font-weight: 700;
+          overflow-wrap: anywhere;
+        }
+        .brief-summary {
+          margin: 8px 0 0;
+          color: #3f352d;
+          line-height: 1.58;
+          font-size: 0.97rem;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          text-wrap: pretty;
+        }
+        .item {
+          margin: 0 0 10px;
+          color: #4b4037;
+          font-size: 14px;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          text-wrap: pretty;
+        }
+        .item strong {
+          color: #2f2823;
+          margin-right: 4px;
+        }
 
-        .empty-state, .loading-state { border:1px solid rgba(190,168,142,.34); border-radius:14px; padding:18px; color:#66594c; background:rgba(255,251,246,.9); display:flex; align-items:center; gap:12px; min-width:0; max-width:100%; overflow-wrap:anywhere; }
-        .loading-preview-note { margin:6px 0 0; font-size:.84rem; color:#79695a; }
-        .spinner { width:18px; height:18px; border-radius:999px; border:2px solid rgba(140,173,167,.32); border-top-color:#3f9f92; animation: spin .8s linear infinite; flex:0 0 auto; }
+        .preview-panel {
+          border: 1px solid rgba(186, 164, 137, 0.36);
+          border-radius: 20px;
+          padding: 20px;
+          background: linear-gradient(145deg, rgba(255, 251, 246, 0.98), rgba(245, 234, 221, 0.95));
+          min-height: 180px;
+          display: grid;
+          gap: 18px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 18px 26px rgba(121, 99, 71, 0.12);
+          min-width: 0;
+          width: 100%;
+          overflow: hidden;
+        }
+        .preview-panel p {
+          margin: 0;
+          color: #5c4e43;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .preview-frame {
+          border-radius: 14px;
+          border: 1px solid rgba(196, 172, 143, 0.34);
+          background: radial-gradient(circle at 20% 20%, rgba(234, 198, 145, 0.28), transparent 45%),
+            radial-gradient(circle at 85% 10%, rgba(152, 199, 187, 0.28), transparent 38%),
+            linear-gradient(170deg, rgba(246, 236, 223, 0.95), rgba(235, 223, 208, 0.94));
+          min-height: 138px;
+          padding: 14px;
+          display: grid;
+          align-content: space-between;
+          gap: 14px;
+          min-width: 0;
+          overflow: hidden;
+        }
+        .preview-image-shell {
+          border-radius: 14px;
+          border: 1px solid rgba(193, 169, 141, 0.38);
+          background: linear-gradient(160deg, rgba(249, 239, 226, 0.94), rgba(236, 225, 211, 0.95));
+          overflow: hidden;
+          min-height: 220px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px;
+          box-shadow: 0 12px 22px rgba(124, 101, 72, 0.16);
+          width: 100%;
+          max-width: 100%;
+        }
+        .preview-image {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+          height: auto;
+          max-height: 560px;
+          object-fit: contain;
+        }
+        .preview-fallback {
+          display: grid;
+          gap: 10px;
+          min-width: 0;
+        }
+        .preview-prompt {
+          border-radius: 12px;
+          border: 1px solid rgba(188, 164, 137, 0.35);
+          background: rgba(255, 252, 247, 0.84);
+          padding: 12px;
+          color: #4f443a;
+          font-size: 0.92rem;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .preview-caption {
+          margin: 0;
+          font-size: 0.85rem;
+          color: #7e6e60;
+        }
+        .preview-layout {
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 8px;
+          min-height: 62px;
+          min-width: 0;
+        }
+        .preview-block {
+          border-radius: 10px;
+          border: 1px solid rgba(194, 170, 143, 0.34);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(246, 237, 226, 0.55));
+          min-width: 0;
+        }
+        .preview-block.secondary {
+          background: linear-gradient(180deg, rgba(152, 199, 187, 0.35), rgba(255, 255, 255, 0.2));
+        }
+        .preview-chip-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          min-width: 0;
+        }
+        .preview-chip {
+          font-size: 11px;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          border-radius: 999px;
+          padding: 5px 9px;
+          color: #4c4137;
+          border: 1px solid rgba(191, 168, 141, 0.34);
+          background: rgba(255, 249, 242, 0.82);
+        }
+        .preview-tag {
+          font-size: 12px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #8f7962;
+          font-weight: 600;
+        }
 
-        .result-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:16px; min-width:0; max-width:100%; overflow-x:hidden; }
-        .result-grid.event-grid { gap:20px; }
-        .result-card { border:1px solid rgba(185,163,136,.36); border-radius:20px; padding:20px; background:linear-gradient(160deg, rgba(255,252,247,.96), rgba(245,236,225,.93)); box-shadow:inset 0 1px 0 rgba(255,255,255,.7), 0 10px 22px rgba(128,103,72,.1); min-width:0; max-width:100%; overflow-x:hidden; }
-        .result-card h3 { margin:0 0 14px; color:#4b4036; font-size:1.15rem; letter-spacing:.01em; overflow-wrap:anywhere; word-break:break-word; text-wrap:pretty; }
-
-        .event-brief-card { border-left:6px solid #99c1b8; }
-        .brief-eyebrow { margin:0; text-transform:uppercase; letter-spacing:.08em; font-size:11px; color:#8d7862; font-weight:700; overflow-wrap:anywhere; }
-        .brief-summary { margin:10px 0 0; color:#3f352d; line-height:1.55; font-size:.97rem; overflow-wrap:anywhere; word-break:break-word; text-wrap:pretty; }
-        .item { margin:0 0 10px; color:#4b4037; font-size:14px; line-height:1.5; overflow-wrap:anywhere; word-break:break-word; text-wrap:pretty; }
-        .item strong { color:#2f2823; margin-right:4px; overflow-wrap:anywhere; }
-
-        .preview-panel { border:1px solid rgba(186,164,137,.36); border-radius:20px; padding:20px; background:linear-gradient(145deg, rgba(255,251,246,.98), rgba(245,234,221,.95)); min-height:180px; display:grid; gap:18px; box-shadow:inset 0 1px 0 rgba(255,255,255,.75), 0 18px 26px rgba(121,99,71,.12); min-width:0; max-width:100%; overflow-x:hidden; }
-        .preview-panel p { margin:0; color:#5c4e43; line-height:1.45; overflow-wrap:anywhere; word-break:break-word; }
-        .preview-frame { border-radius:14px; border:1px solid rgba(196,172,143,.34); background:radial-gradient(circle at 20% 20%, rgba(234,198,145,.28), transparent 45%), radial-gradient(circle at 85% 10%, rgba(152,199,187,.28), transparent 38%), linear-gradient(170deg, rgba(246,236,223,.95), rgba(235,223,208,.94)); min-height:138px; padding:14px; display:grid; align-content:space-between; gap:14px; }
-        .preview-image-shell { border-radius:14px; border:1px solid rgba(193,169,141,.38); background:linear-gradient(160deg, rgba(249,239,226,.94), rgba(236,225,211,.95)); overflow:hidden; min-height:220px; display:flex; align-items:center; justify-content:center; padding:10px; box-shadow:0 12px 22px rgba(124,101,72,.16); min-width:0; width:100%; max-width:100%; }
-        .preview-image { display:block; width:100%; max-width:100%; height:auto; max-height:560px; object-fit:contain; }
-        .preview-fallback { display:grid; gap:10px; }
-        .preview-prompt { border-radius:12px; border:1px solid rgba(188,164,137,.35); background:rgba(255,252,247,.84); padding:12px; color:#4f443a; font-size:.92rem; line-height:1.5; overflow-wrap:anywhere; word-break:break-word; }
-        .preview-caption { margin:0; font-size:.85rem; color:#7e6e60; overflow-wrap:anywhere; }
-        .preview-layout { display:grid; grid-template-columns:1.15fr .85fr; gap:8px; min-height:62px; }
-        .preview-block { border-radius:10px; border:1px solid rgba(194,170,143,.34); background:linear-gradient(180deg, rgba(255,255,255,.65), rgba(246,237,226,.55)); }
-        .preview-block.secondary { background:linear-gradient(180deg, rgba(152,199,187,.35), rgba(255,255,255,.2)); }
-        .preview-chip-row { display:flex; flex-wrap:wrap; gap:6px; }
-        .preview-chip { font-size:11px; letter-spacing:.05em; text-transform:uppercase; border-radius:999px; padding:5px 9px; color:#4c4137; border:1px solid rgba(191,168,141,.34); background:rgba(255,249,242,.82); }
-        .preview-tag { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#8f7962; font-weight:600; }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
 
         @media (min-width: 820px) {
-          .atmos-page { padding: 36px 28px 48px; }
-          .builder-grid { grid-template-columns: 1fr 1fr; }
-          .control-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-          .event-controls { grid-template-columns: 1fr 1fr 1.1fr; align-items: start; }
-          .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .builder-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .control-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+          .event-controls {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr);
+            align-items: start;
+          }
+          .result-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
           .result-grid.event-grid .preview-panel,
-          .result-grid.event-grid .result-card.smart-move { grid-column: span 2; }
-          .results-header { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
-          .results-header-actions { justify-content: flex-end; }
+          .result-grid.event-grid .event-hero,
+          .result-grid.event-grid .result-card.smart-move {
+            grid-column: span 2;
+          }
         }
 
-        @media (max-width: 720px) {
-          .download-btn { width: 100%; }
-          .results-header-actions { width: 100%; }
+        @media (max-width: 760px) {
+          .results-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .results-header-actions {
+            width: 100%;
+          }
+          .download-btn {
+            width: 100%;
+            white-space: normal;
+          }
+          button[type="submit"] {
+            max-width: 100%;
+          }
         }
       `}</style>
     </main>
@@ -973,10 +1534,7 @@ function PersonalResults({ result }) {
           ["Search Phrases", (result.sound?.searchPhrases || []).join(", ")],
         ]}
       />
-      <ResultCard
-        title="Song Ideas"
-        items={(result.songIdeas || []).map((idea, index) => [`Idea ${index + 1}`, idea])}
-      />
+      <ResultCard title="Song Ideas" items={(result.songIdeas || []).map((idea, index) => [`Idea ${index + 1}`, idea])} />
       <ResultCard
         title="Environment"
         items={[
@@ -996,15 +1554,20 @@ function EventResults({ result }) {
 
   return (
     <div className="result-grid event-grid">
+      <article className="event-hero">
+        <p className="event-hero-eyebrow">Event Concept Brief</p>
+        <h3 className="event-hero-title">A polished event narrative for concept, execution, and guest experience.</h3>
+        <p className="event-hero-subtitle">
+          This brief is structured in a fixed section order to make planning handoff clean and reliable for designers,
+          production teams, and client approvals.
+        </p>
+      </article>
+
       <article className="preview-panel">
         <span className="preview-tag">Styled Preview</span>
         {hasStyledPreviewImage ? (
           <div className="preview-image-shell">
-            <img
-              src={result.styledPreviewImageUrl}
-              alt="Generated styled event concept preview"
-              className="preview-image"
-            />
+            <img src={result.styledPreviewImageUrl} alt="Generated styled event concept preview" className="preview-image" />
           </div>
         ) : (
           <div className="preview-fallback">
@@ -1024,21 +1587,21 @@ function EventResults({ result }) {
             </p>
           </div>
         )}
-        {hasStyledPreviewPrompt && (
+        {hasStyledPreviewPrompt ? (
           <p className="preview-prompt">
             {toConciseSentence(result.styledPreviewPrompt, "A cinematic design direction will appear here.")}
           </p>
-        )}
-        {!hasStyledPreviewPrompt && (
+        ) : (
           <p className="preview-prompt">A styled preview concept prompt will appear here.</p>
         )}
       </article>
+
       {conceptSections.map(([title, summary], index) => (
         <EventBriefCard
           key={title}
           title={title}
           summary={summary}
-          className={index === conceptSections.length - 1 ? "smart-move" : ""}
+          className={`${eventSectionAccents[index % eventSectionAccents.length]} ${index === conceptSections.length - 1 ? "smart-move" : ""}`}
         />
       ))}
     </div>
