@@ -286,13 +286,14 @@ async function buildEventAtmosphere({
     ],
     schema: eventSchema,
     schemaName: "atmosphere_blueprint_event",
+    fallbackDataBuilder: buildEventPlanFallback,
   });
 
   if (openaiResponse.error) {
     return openaiResponse.error;
   }
 
-  const eventPlan = openaiResponse.data;
+  const eventPlan = normalizeEventPlan(openaiResponse.data);
   const styledPreviewPrompt = buildStyledPreviewPrompt({
     eventPlan,
     eventType,
@@ -309,7 +310,131 @@ async function buildEventAtmosphere({
   });
 }
 
-async function fetchAtmosphereResponse({ input, schema, schemaName }) {
+function summarizeResponseShape(payload) {
+  const output = Array.isArray(payload?.output) ? payload.output : [];
+  const contentTypes = output
+    .flatMap((entry) => (Array.isArray(entry?.content) ? entry.content.map((item) => item?.type || "unknown") : []))
+    .slice(0, 8);
+
+  return {
+    id: payload?.id ?? null,
+    status: payload?.status ?? null,
+    outputItems: output.length,
+    contentTypes,
+    hasOutputText: typeof payload?.output_text === "string" && payload.output_text.trim().length > 0,
+    incompleteReason: payload?.incomplete_details?.reason ?? null,
+    usage: payload?.usage
+      ? {
+          inputTokens: payload.usage.input_tokens,
+          outputTokens: payload.usage.output_tokens,
+        }
+      : null,
+  };
+}
+
+function collectResponseTextCandidates(payload) {
+  const candidates = [];
+
+  if (typeof payload?.output_text === "string" && payload.output_text.trim()) {
+    candidates.push(payload.output_text.trim());
+  }
+
+  const output = Array.isArray(payload?.output) ? payload.output : [];
+  for (const item of output) {
+    const content = Array.isArray(item?.content) ? item.content : [];
+    for (const part of content) {
+      if (typeof part?.text === "string" && part.text.trim()) {
+        candidates.push(part.text.trim());
+      }
+
+      if (part?.parsed && typeof part.parsed === "object") {
+        candidates.push(JSON.stringify(part.parsed));
+      }
+
+      if (part?.json && typeof part.json === "object") {
+        candidates.push(JSON.stringify(part.json));
+      }
+    }
+  }
+
+  return [...new Set(candidates)];
+}
+
+function parseJsonCandidate(text) {
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  const fencedJsonMatch = text.match(/```json\s*([\s\S]*?)```/i);
+  if (fencedJsonMatch?.[1]) {
+    try {
+      return JSON.parse(fencedJsonMatch[1].trim());
+    } catch {}
+  }
+
+  const objectMatch = text.match(/\{[\s\S]*\}/);
+  if (objectMatch?.[0]) {
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch {}
+  }
+
+  return null;
+}
+
+function parseResponsePayload(payload) {
+  const candidates = collectResponseTextCandidates(payload);
+  for (const candidate of candidates) {
+    const parsed = parseJsonCandidate(candidate);
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function buildEventPlanFallback(payload) {
+  const candidates = collectResponseTextCandidates(payload);
+  const firstCandidate = candidates[0] || "";
+
+  return normalizeEventPlan({
+    mode: "event",
+    lighting: "Layer warm ambient wash at walls and a focused highlight on the primary focal zone.",
+    decorPlacement:
+      "Anchor the main composition on the strongest wall axis and keep entry sightlines open to the focal point.",
+    music:
+      "Place speakers or DJ coverage near the high-energy zone while keeping dining or lounge conversation zones clear.",
+    roomFlow:
+      "Guide guests from entry to focal gathering area first, then toward secondary social zones without bottlenecks.",
+    designNotes: firstCandidate || "Use premium finishes, intentional spacing, and realistic scale for all installs.",
+    oneSmartMove:
+      "Invest in one high-impact focal installation at guest eye-line to establish immediate visual hierarchy.",
+    styledPreviewPrompt: firstCandidate,
+    styledPreviewImageUrl: null,
+  });
+}
+
+function normalizeEventPlan(eventPlan = {}) {
+  return {
+    mode: "event",
+    styledPreviewPrompt:
+      typeof eventPlan.styledPreviewPrompt === "string" ? eventPlan.styledPreviewPrompt : "",
+    styledPreviewImageUrl: typeof eventPlan.styledPreviewImageUrl === "string" ? eventPlan.styledPreviewImageUrl : null,
+    lighting: typeof eventPlan.lighting === "string" ? eventPlan.lighting : "",
+    decorPlacement: typeof eventPlan.decorPlacement === "string" ? eventPlan.decorPlacement : "",
+    music: typeof eventPlan.music === "string" ? eventPlan.music : "",
+    roomFlow: typeof eventPlan.roomFlow === "string" ? eventPlan.roomFlow : "",
+    designNotes: typeof eventPlan.designNotes === "string" ? eventPlan.designNotes : "",
+    oneSmartMove: typeof eventPlan.oneSmartMove === "string" ? eventPlan.oneSmartMove : "",
+  };
+}
+
+async function fetchAtmosphereResponse({ input, schema, schemaName, fallbackDataBuilder }) {
   const openaiResponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -344,16 +469,32 @@ async function fetchAtmosphereResponse({ input, schema, schemaName }) {
   }
 
   const payload = await openaiResponse.json();
-  const jsonText = payload.output_text;
+  const payloadShape = summarizeResponseShape(payload);
+  console.info(`[Atmos] OpenAI response shape (${schemaName})`, payloadShape);
 
-  if (!jsonText) {
-    return {
-      error: NextResponse.json(
-        { error: "Model returned an empty response. Please try again." },
-        { status: 500 },
-      ),
-    };
+  const parsed = parseResponsePayload(payload);
+  if (parsed) {
+    return { data: parsed };
   }
 
-  return { data: JSON.parse(jsonText) };
+  if (typeof fallbackDataBuilder === "function") {
+    const fallbackData = fallbackDataBuilder(payload);
+    if (fallbackData) {
+      console.warn(`[Atmos] Using fallback response parsing for ${schemaName}.`);
+      return { data: fallbackData };
+    }
+  }
+
+  return {
+    error: NextResponse.json(
+      {
+        error: "OpenAI returned a response, but structured output could not be parsed.",
+        details: {
+          schemaName,
+          responseShape: payloadShape,
+        },
+      },
+      { status: 500 },
+    ),
+  };
 }
