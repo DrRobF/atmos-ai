@@ -437,6 +437,14 @@ export default function HomePage() {
     return Boolean(description.trim() || imageFile);
   }, [mode, isLoading, description, imageFile, venueImageFile]);
 
+  const diagnosticDownloadBtnStyle = {
+    background: "#ff0f8f",
+    color: "#ffffff",
+    border: "3px solid #4a0034",
+    opacity: 1,
+    filter: "none",
+  };
+
   useEffect(
     () => () => {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -723,6 +731,7 @@ export default function HomePage() {
                 className="download-btn"
                 onClick={handleDownloadPdf}
                 disabled={!result || isLoading || isDownloadingPdf}
+                style={diagnosticDownloadBtnStyle}
               >
                 {isDownloadingPdf ? "Preparing PDF..." : "DOWNLOAD PDF HERE"}
               </button>
@@ -1503,6 +1512,15 @@ export default function HomePage() {
 }
 
 function Selector({ label, options, selected, onSelect, diagnosticSelectedPrefix = false }) {
+  const diagnosticSelectedChipStyle = {
+    background: "#0057ff",
+    color: "#ffffff",
+    border: "4px solid #00114f",
+    boxShadow: "0 0 0 4px rgba(0, 87, 255, 0.35)",
+    opacity: 1,
+    filter: "none",
+  };
+
   return (
     <div className="selector">
       <label>{label}</label>
@@ -1517,6 +1535,7 @@ function Selector({ label, options, selected, onSelect, diagnosticSelectedPrefix
             aria-pressed={selected === option}
             data-selected={selected === option ? "true" : "false"}
             onClick={() => onSelect(option)}
+            style={selected === option && diagnosticSelectedPrefix ? diagnosticSelectedChipStyle : undefined}
           >
             {selected === option && diagnosticSelectedPrefix ? `SELECTED: ${option}` : option}
           </button>
