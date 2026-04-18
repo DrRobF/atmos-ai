@@ -162,20 +162,20 @@ function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
   const plannerNotes = notes?.trim() || "No additional planner notes.";
 
   return [
-    `Cinematic luxury event rendering for a ${eventType} with a ${eventStyle} design direction.`,
-    "Use the exact venue architecture, ceiling height, entry path, and room proportions from the analyzed venue photo.",
-    "Apply any reference styling as if installed by a top-tier event production team with realistic scale, spacing, and material finishes.",
-    "Show what guests see first on entry, then the primary focal composition, then supporting zones in coherent visual hierarchy.",
-    "Lighting must read physically real: layered ambient wash, focal highlights, and intentional shadow depth that guides the eye.",
-    "Render premium hospitality detail: believable linens, glassware, floral volume, candle density, staging finishes, and cable-free execution.",
-    "Mood target: editorial, immersive, elevated, and photographable without looking synthetic or over-styled.",
-    "Avoid diagrams, labels, overlays, or AR graphics. Produce a convincing in-room design preview still.",
-    `Lighting plan to depict: ${eventPlan.lighting}`,
-    `Decor layout to depict: ${eventPlan.decorPlacement}`,
-    `Guest movement and energy flow to depict: ${eventPlan.roomFlow}`,
-    `Refinement details to depict: ${eventPlan.designNotes}`,
+    `Scene overview: Cinematic luxury ${eventType} in a ${eventStyle} direction, using the exact venue architecture and proportions from the analyzed photo.`,
+    "Focal point: the main table must be clearly visible in the center landing and read as the primary composition at first glance.",
+    "Lighting: columns must show visible uplighting, with layered ambient wash and focused highlights that guide the eye toward the main table.",
+    "Supporting elements: hydrangea arrangements must be prominent, with key decor grouped in visually clear clusters and evenly spaced supporting pieces around circulation paths.",
+    "Spatial flow: guests should visually read a clear path from entry to focal table to secondary gathering zones, without clutter or blocked sightlines.",
+    "Realism cues: keep materials and installation believable with natural variation, slight asymmetry, and real-world imperfection instead of overly perfect symmetry.",
+    "Mood/style: editorial, immersive, elevated, and photographable; premium interior event styling with rich but realistic shadows and controlled highlight roll-off.",
+    "Use visually interpretable spacing language (evenly spaced, clustered, staggered) instead of technical measurement-heavy instructions unless critical to composition.",
+    "Avoid diagrams, labels, overlays, or AR graphics; render a convincing in-room design preview still.",
+    `Plan alignment - lighting: ${eventPlan.lighting}`,
+    `Plan alignment - decor: ${eventPlan.decorPlacement}`,
+    `Plan alignment - flow: ${eventPlan.roomFlow}`,
+    `Plan alignment - refinements: ${eventPlan.designNotes}`,
     `Planner notes: ${plannerNotes}`,
-    "Camera/style guidance: wide interior editorial lens, natural perspective from guest eye level, controlled highlight roll-off, rich but realistic shadows, premium color grade.",
   ].join(" ");
 }
 
