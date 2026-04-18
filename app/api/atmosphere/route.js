@@ -63,6 +63,7 @@ const eventSchema = {
     styledPreviewImageUrl: { type: ["string", "null"] },
     lighting: { type: "string" },
     decorPlacement: { type: "string" },
+    floralDecor: { type: "string" },
     music: { type: "string" },
     roomFlow: { type: "string" },
     designNotes: { type: "string" },
@@ -74,6 +75,7 @@ const eventSchema = {
     "styledPreviewImageUrl",
     "lighting",
     "decorPlacement",
+    "floralDecor",
     "music",
     "roomFlow",
     "designNotes",
@@ -170,20 +172,19 @@ function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
       : "Time-of-day tone: match lighting color and intensity to the stated event type, avoiding default dramatic evening grading unless explicitly requested.";
 
   return [
-    `Scene overview: Cinematic luxury ${eventType} in a ${eventStyle} direction, using the exact venue architecture and proportions from the analyzed photo.`,
-    "Focal point: the main table must be clearly visible in the center landing and read as the primary composition at first glance.",
-    "Lighting: columns must show visible uplighting, with layered ambient wash and focused highlights that guide the eye toward the main table.",
-    "Supporting elements: hydrangea arrangements must be prominent, with key decor grouped in visually clear clusters and supporting pieces that feel naturally placed rather than perfectly uniform.",
-    "Spatial flow: guests should visually read a clear path from entry to focal table to secondary gathering zones, without clutter or blocked sightlines.",
-    "Realism cues: keep materials and installation believable with slight floral placement variation, subtle asymmetry in decor, and real-world imperfection; avoid overly perfect spacing unless critical for function or focal hierarchy.",
-    "Mood/style: editorial, immersive, elevated, and photographable; premium interior event styling with rich but realistic shadows and controlled highlight roll-off.",
-    "Use visually interpretable spacing language (clustered, staggered, intentionally balanced) instead of technical measurement-heavy instructions unless critical to composition.",
-    "Do not include signage text baked into architecture (for example words on walls, doors, or permanent surfaces); keep the environment natural and believable.",
+    `Scene overview: a new professional ${eventType} concept in a ${eventStyle} direction, designed for this exact venue architecture and scale.`,
+    "Venue fidelity: keep the real room shell, entry path, columns, walls, openings, and architectural proportions from the venue image.",
+    "Reference handling: use the reference photo only as style DNA for palette, floral language, formality, and material mood; do not restage, duplicate, or remix the source composition.",
+    "Concept direction: design a fresh interpretation with new table styling, original focal treatment, and a new lighting composition that feels custom-built for this venue.",
+    "Staging realism: choose believable installs, intentional asymmetry, practical guest circulation, and photo-ready focal hierarchy.",
+    "Visual tone: editorial, premium, calm, and immersive with realistic light behavior and physically plausible materials.",
+    "Guardrail: this must read as an original planner-designed concept, not a direct copy or extension of uploaded references.",
+    "Do not include signage text baked into architecture; keep surfaces natural and believable.",
     timeOfDayDirection,
-    "Preserve current strengths: maintain strong style alignment, clear centered composition, intentional lighting direction, and clear focal hierarchy.",
     "Avoid diagrams, labels, overlays, or AR graphics; render a convincing in-room design preview still.",
     `Plan alignment - lighting: ${eventPlan.lighting}`,
-    `Plan alignment - decor: ${eventPlan.decorPlacement}`,
+    `Plan alignment - layout: ${eventPlan.decorPlacement}`,
+    `Plan alignment - floral and decor: ${eventPlan.floralDecor}`,
     `Plan alignment - flow: ${eventPlan.roomFlow}`,
     `Plan alignment - refinements: ${eventPlan.designNotes}`,
     `Planner notes: ${plannerNotes}`,
@@ -279,16 +280,17 @@ async function buildEventAtmosphere({
             type: "input_text",
             text:
               "You are Atmos AI in Event Mode, a high-end event atmosphere and venue styling assistant. " +
-              "Analyze the venue photo, adapt any provided reference image style realistically to the venue, " +
-              "and provide concrete recommendations for lighting placement, table/decor zones, focal points, " +
-              "music/entertainment placement, and guest flow. Keep every section specific and visually believable. " +
+              "Analyze the venue photo as the architectural base and treat any provided reference image as inspiration only. " +
+              "Never copy literal arrangement, camera framing, or object placement from the reference image. " +
+              "Provide concrete recommendations for atmosphere, layout, lighting, floral/decor direction, sound placement, and guest flow. Keep every section specific and visually believable. " +
               "No generic wording. Use confident, intentional language and give install-ready specificity. " +
-              "For lighting, specify direction (walls, behind tables, overhead strands), intensity (soft wash vs focused glow), and purpose (highlight focal table, guide movement, build energy near dance floor). " +
-              "For decorPlacement, state exactly where the main table sits, what anchors the focal point, and what guests see first when entering. " +
+              "For lighting, specify direction, intensity, and purpose in concise client-facing language. " +
+              "For decorPlacement, state where the primary composition sits, what anchors the focal point, and what guests see first when entering. " +
+              "For floralDecor, define floral language, material mood, and table styling direction as a fresh interpretation of inspiration. " +
               "For roomFlow, describe the guest journey from entry to gathering to high-energy zone, including where bottlenecks are avoided. " +
               "For music, place speakers/DJ/live elements in believable positions that protect conversation zones while building momentum where appropriate. " +
-              "For designNotes and oneSmartMove, provide premium, high-impact refinements with measurable placement cues (counts, spacing ranges, offsets, or distances where possible). " +
-              "For styledPreviewPrompt, write a cinematic, visual, scene-building prompt with precise mood, arrangement, light behavior, and atmospheric realism; avoid phrases like 'beautiful event scene.' " +
+              "For designNotes and oneSmartMove, keep output concise, premium, and client-ready rather than technical. " +
+              "For styledPreviewPrompt, explicitly instruct the image model to create a new professional concept for this venue and not a direct restaging of uploaded images. " +
               "Return only JSON matching the schema.",
           },
         ],
@@ -418,6 +420,8 @@ function buildEventPlanFallback(payload) {
     lighting: "Layer warm ambient wash at walls and a focused highlight on the primary focal zone.",
     decorPlacement:
       "Anchor the main composition on the strongest wall axis and keep entry sightlines open to the focal point.",
+    floralDecor:
+      "Use the reference palette as inspiration only, then design an original tablescape and floral language tailored to the venue scale.",
     music:
       "Place speakers or DJ coverage near the high-energy zone while keeping dining or lounge conversation zones clear.",
     roomFlow:
@@ -438,6 +442,7 @@ function normalizeEventPlan(eventPlan = {}) {
     styledPreviewImageUrl: typeof eventPlan.styledPreviewImageUrl === "string" ? eventPlan.styledPreviewImageUrl : null,
     lighting: typeof eventPlan.lighting === "string" ? eventPlan.lighting : "",
     decorPlacement: typeof eventPlan.decorPlacement === "string" ? eventPlan.decorPlacement : "",
+    floralDecor: typeof eventPlan.floralDecor === "string" ? eventPlan.floralDecor : "",
     music: typeof eventPlan.music === "string" ? eventPlan.music : "",
     roomFlow: typeof eventPlan.roomFlow === "string" ? eventPlan.roomFlow : "",
     designNotes: typeof eventPlan.designNotes === "string" ? eventPlan.designNotes : "",
