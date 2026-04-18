@@ -1006,13 +1006,13 @@ export default function HomePage() {
           width: 100%;
         }
         .chip {
-          border: 1px solid rgba(189, 173, 153, 0.6);
-          color: #51453b;
-          padding: 10px 17px;
+          border: 1px solid rgba(182, 162, 136, 0.75);
+          color: #4d4136;
+          padding: 10px 18px;
           border-radius: 999px;
-          background: linear-gradient(180deg, #fffdf9, #f2e9de);
+          background: linear-gradient(180deg, #fffdfa, #f5ede2);
           cursor: pointer;
-          font-weight: 600;
+          font-weight: 700;
           letter-spacing: 0.01em;
           transition: all 0.2s ease;
           display: inline-flex;
@@ -1025,24 +1025,18 @@ export default function HomePage() {
           text-align: center;
           overflow-wrap: anywhere;
           word-break: break-word;
-          box-shadow: 0 2px 8px rgba(119, 96, 66, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.76);
+          box-shadow: 0 2px 8px rgba(119, 96, 66, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         .chip:hover {
           transform: translateY(-1px);
-          box-shadow: 0 8px 16px rgba(126, 100, 70, 0.13);
-          border-color: rgba(174, 155, 131, 0.7);
+          box-shadow: 0 8px 16px rgba(126, 100, 70, 0.14);
+          border-color: rgba(163, 142, 116, 0.9);
         }
         .chip.active {
-          background: linear-gradient(130deg, #5f968f 0%, #4b8079 54%, #3e6f69 100%);
-          border-color: rgba(58, 98, 92, 0.95);
-          color: #f8f9f8;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(88, 140, 132, 0.22), 0 9px 18px rgba(58, 98, 92, 0.3);
-        }
-        .chip.active .selection-mark {
-          width: 16px;
-          height: 16px;
-          font-size: 11px;
-          color: #2f5f59;
+          background: linear-gradient(135deg, #14806f 0%, #0f6658 56%, #0b4f45 100%);
+          border-color: #0a4c41;
+          color: #f6fffd;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(20, 128, 111, 0.28), 0 10px 18px rgba(10, 76, 65, 0.34);
         }
 
         .cta-row {
@@ -1086,7 +1080,7 @@ export default function HomePage() {
           gap: 22px;
           min-width: 0;
           max-width: 100%;
-          overflow: hidden;
+          overflow: visible;
         }
         .results-header {
           display: flex;
@@ -1108,7 +1102,7 @@ export default function HomePage() {
         .results-header-actions {
           min-width: 0;
           max-width: 100%;
-          flex: 0 1 auto;
+          flex: 0 0 auto;
           display: flex;
           justify-content: flex-end;
         }
@@ -1142,12 +1136,19 @@ export default function HomePage() {
           transition: all 0.2s ease;
           max-width: 100%;
           white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
         }
         .download-btn:hover:not(:disabled) {
           transform: translateY(-1px);
         }
         .download-btn:disabled {
-          opacity: 0.45;
+          opacity: 0.85;
+          color: #f3fffc;
+          background: linear-gradient(160deg, #7aa9a2, #65958e);
+          border-color: rgba(86, 132, 125, 0.85);
           cursor: not-allowed;
         }
 
@@ -1187,6 +1188,7 @@ export default function HomePage() {
           min-width: 0;
           width: 100%;
           max-width: 100%;
+          overflow-wrap: anywhere;
         }
         .result-card {
           width: 100%;
@@ -1197,7 +1199,7 @@ export default function HomePage() {
           padding: 18px;
           background: linear-gradient(162deg, rgba(255, 252, 247, 0.98), rgba(245, 236, 225, 0.95));
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 20px rgba(128, 103, 72, 0.09);
-          overflow: hidden;
+          overflow: visible;
         }
         .result-card h3 {
           margin: 0 0 14px;
@@ -1480,9 +1482,9 @@ function Selector({ label, options, selected, onSelect }) {
             type="button"
             className={`chip ${selected === option ? "active" : ""}`}
             aria-pressed={selected === option}
+            data-selected={selected === option ? "true" : "false"}
             onClick={() => onSelect(option)}
           >
-            {selected === option && <span className="selection-mark">✓</span>}
             {option}
           </button>
         ))}
