@@ -60,6 +60,7 @@ const eventSchema = {
   properties: {
     mode: { type: "string", enum: ["event"] },
     styledPreviewPrompt: { type: "string" },
+    styledPreviewImageUrl: { type: ["string", "null"] },
     lighting: { type: "string" },
     decorPlacement: { type: "string" },
     music: { type: "string" },
@@ -70,6 +71,7 @@ const eventSchema = {
   required: [
     "mode",
     "styledPreviewPrompt",
+    "styledPreviewImageUrl",
     "lighting",
     "decorPlacement",
     "music",
@@ -156,6 +158,57 @@ async function buildPersonalAtmosphere({ description = "", mood = "Relaxed", tim
   return NextResponse.json(openaiResponse.data);
 }
 
+function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
+  const plannerNotes = notes?.trim() || "No additional planner notes.";
+
+  return [
+    `Luxury event concept rendering for a ${eventType} with a ${eventStyle} direction.`,
+    "Use the real venue architecture and proportions from the analyzed venue photo as the base scene.",
+    "Translate any provided decor reference into this venue with believable scale and premium material details.",
+    "Atmosphere target: elegant, realistic, cinematic, and high-end hospitality quality.",
+    "Not a CAD diagram, not AR overlays, not cartoonish. Keep it as a convincing design concept image.",
+    `Lighting direction: ${eventPlan.lighting}`,
+    `Decor placement direction: ${eventPlan.decorPlacement}`,
+    `Room flow direction: ${eventPlan.roomFlow}`,
+    `Design details: ${eventPlan.designNotes}`,
+    `Planner notes: ${plannerNotes}`,
+    "Camera/style guidance: wide interior editorial lens, natural perspective, balanced highlights, rich shadows, premium color grading.",
+  ].join(" ");
+}
+
+async function generateStyledPreviewImage(prompt) {
+  try {
+    const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-image-1",
+        prompt,
+        size: "1536x1024",
+        quality: "high",
+      }),
+    });
+
+    if (!imageResponse.ok) {
+      return null;
+    }
+
+    const payload = await imageResponse.json();
+    const base64Image = payload?.data?.[0]?.b64_json;
+
+    if (!base64Image) {
+      return null;
+    }
+
+    return `data:image/png;base64,${base64Image}`;
+  } catch {
+    return null;
+  }
+}
+
 async function buildEventAtmosphere({
   venueImage,
   referenceImage,
@@ -226,7 +279,21 @@ async function buildEventAtmosphere({
     return openaiResponse.error;
   }
 
-  return NextResponse.json(openaiResponse.data);
+  const eventPlan = openaiResponse.data;
+  const styledPreviewPrompt = buildStyledPreviewPrompt({
+    eventPlan,
+    eventType,
+    eventStyle,
+    notes,
+  });
+
+  const styledPreviewImageUrl = await generateStyledPreviewImage(styledPreviewPrompt);
+
+  return NextResponse.json({
+    ...eventPlan,
+    styledPreviewPrompt,
+    styledPreviewImageUrl,
+  });
 }
 
 async function fetchAtmosphereResponse({ input, schema, schemaName }) {
