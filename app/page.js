@@ -437,14 +437,6 @@ export default function HomePage() {
     return Boolean(description.trim() || imageFile);
   }, [mode, isLoading, description, imageFile, venueImageFile]);
 
-  const diagnosticDownloadBtnStyle = {
-    background: "#ff0f8f",
-    color: "#ffffff",
-    border: "3px solid #4a0034",
-    opacity: 1,
-    filter: "none",
-  };
-
   useEffect(
     () => () => {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -673,14 +665,12 @@ export default function HomePage() {
                       options={eventTypeOptions}
                       selected={eventType}
                       onSelect={setEventType}
-                      diagnosticSelectedPrefix
                     />
                     <Selector
                       label="Style"
                       options={eventStyleOptions}
                       selected={eventStyle}
                       onSelect={setEventStyle}
-                      diagnosticSelectedPrefix
                     />
                     <div className="field notes-field">
                       <label htmlFor="eventNotes">Planner Notes (optional)</label>
@@ -719,7 +709,6 @@ export default function HomePage() {
         </section>
 
         <section className="results card">
-          <p className="debug-report-label">DEBUG REPORT PATH ACTIVE</p>
           <div className="results-header">
             <div className="results-header-main">
               <p className="results-kicker">Final Report</p>
@@ -731,9 +720,8 @@ export default function HomePage() {
                 className="download-btn"
                 onClick={handleDownloadPdf}
                 disabled={!result || isLoading || isDownloadingPdf}
-                style={diagnosticDownloadBtnStyle}
               >
-                {isDownloadingPdf ? "Preparing PDF..." : "DOWNLOAD PDF HERE"}
+                {isDownloadingPdf ? "Preparing PDF..." : "Download PDF"}
               </button>
             </div>
           </div>
@@ -1009,59 +997,6 @@ export default function HomePage() {
           color: #8f7962;
         }
 
-        .selector {
-          display: grid;
-          gap: 9px;
-          min-width: 0;
-        }
-        .chips {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          align-items: stretch;
-          min-width: 0;
-          width: 100%;
-        }
-        .chip {
-          border: 1px solid rgba(182, 162, 136, 0.75);
-          color: #4d4136;
-          padding: 10px 18px;
-          border-radius: 999px;
-          background: linear-gradient(180deg, #fffdfa, #f5ede2);
-          cursor: pointer;
-          font-weight: 700;
-          letter-spacing: 0.01em;
-          transition: all 0.2s ease;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 7px;
-          max-width: 100%;
-          min-width: 0;
-          white-space: normal;
-          text-align: center;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-          box-shadow: 0 2px 8px rgba(119, 96, 66, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        }
-        .chip:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 16px rgba(126, 100, 70, 0.14);
-          border-color: rgba(163, 142, 116, 0.9);
-        }
-        .chip.active {
-          background: linear-gradient(135deg, #14806f 0%, #0f6658 56%, #0b4f45 100%);
-          border-color: #0a4c41;
-          color: #f6fffd;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(20, 128, 111, 0.28), 0 10px 18px rgba(10, 76, 65, 0.34);
-        }
-        .chip.diagnostic-active-chip {
-          background: #0057ff;
-          border: 4px solid #00114f;
-          color: #ffffff;
-          box-shadow: 0 0 0 4px rgba(0, 87, 255, 0.35);
-        }
-
         .cta-row {
           margin-top: 20px;
           display: grid;
@@ -1104,20 +1039,6 @@ export default function HomePage() {
           min-width: 0;
           max-width: 100%;
           overflow: visible;
-          outline: 4px dashed #ff1f1f;
-          outline-offset: -2px;
-        }
-        .debug-report-label {
-          margin: 0;
-          padding: 8px 10px;
-          font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.03em;
-          color: #202020;
-          background: #ffef57;
-          border: 2px solid #111;
-          border-radius: 8px;
-          width: fit-content;
         }
         .results-header {
           display: flex;
@@ -1162,31 +1083,38 @@ export default function HomePage() {
         }
 
         .download-btn {
-          border: 3px solid #22004a;
+          border: 1px solid rgba(32, 90, 82, 0.82);
           color: #ffffff;
-          background: #ff2d55;
-          border-radius: 12px;
-          padding: 11px 20px;
+          background: linear-gradient(135deg, #3a9788 0%, #2d7d70 62%, #25685e 100%);
+          border-radius: 13px;
+          padding: 12px 20px;
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 700;
           font-size: 0.94rem;
-          letter-spacing: 0.04em;
-          transition: all 0.2s ease;
+          letter-spacing: 0.02em;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
           max-width: 100%;
           white-space: normal;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 22px rgba(35, 103, 93, 0.27);
         }
         .download-btn:hover:not(:disabled) {
           transform: translateY(-1px);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 12px 24px rgba(35, 103, 93, 0.31);
+        }
+        .download-btn:active:not(:disabled) {
+          transform: translateY(0);
+          filter: saturate(1.05);
         }
         .download-btn:disabled {
-          opacity: 0.85;
-          color: #f3fffc;
-          background: linear-gradient(160deg, #7aa9a2, #65958e);
-          border-color: rgba(86, 132, 125, 0.85);
+          opacity: 0.78;
+          color: rgba(246, 255, 252, 0.96);
+          background: linear-gradient(135deg, #67a79b 0%, #5f9289 62%, #557f77 100%);
+          border-color: rgba(77, 117, 110, 0.86);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 7px 14px rgba(44, 76, 71, 0.22);
           cursor: not-allowed;
         }
 
@@ -1233,8 +1161,6 @@ export default function HomePage() {
           max-width: 100%;
           min-width: 0;
           border: 1px solid rgba(185, 163, 136, 0.34);
-          outline: 4px dashed #1f4fff;
-          outline-offset: -2px;
           border-radius: 20px;
           padding: 18px;
           background: linear-gradient(162deg, rgba(255, 252, 247, 0.98), rgba(245, 236, 225, 0.95));
@@ -1511,16 +1437,7 @@ export default function HomePage() {
   );
 }
 
-function Selector({ label, options, selected, onSelect, diagnosticSelectedPrefix = false }) {
-  const diagnosticSelectedChipStyle = {
-    background: "#0057ff",
-    color: "#ffffff",
-    border: "4px solid #00114f",
-    boxShadow: "0 0 0 4px rgba(0, 87, 255, 0.35)",
-    opacity: 1,
-    filter: "none",
-  };
-
+function Selector({ label, options, selected, onSelect }) {
   return (
     <div className="selector">
       <label>{label}</label>
@@ -1529,18 +1446,68 @@ function Selector({ label, options, selected, onSelect, diagnosticSelectedPrefix
           <button
             key={option}
             type="button"
-            className={`chip ${selected === option ? "active" : ""} ${
-              selected === option && diagnosticSelectedPrefix ? "diagnostic-active-chip" : ""
-            }`}
+            className={`chip ${selected === option ? "active" : ""}`}
             aria-pressed={selected === option}
             data-selected={selected === option ? "true" : "false"}
             onClick={() => onSelect(option)}
-            style={selected === option && diagnosticSelectedPrefix ? diagnosticSelectedChipStyle : undefined}
           >
-            {selected === option && diagnosticSelectedPrefix ? `SELECTED: ${option}` : option}
+            {option}
           </button>
         ))}
       </div>
+      <style jsx>{`
+        .selector {
+          display: grid;
+          gap: 9px;
+          min-width: 0;
+        }
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: stretch;
+          min-width: 0;
+          width: 100%;
+        }
+        .chips .chip {
+          border: 1px solid rgba(183, 164, 140, 0.8);
+          color: #4f4338;
+          padding: 10px 18px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #fffdf9, #f2eade);
+          cursor: pointer;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          max-width: 100%;
+          min-width: 0;
+          white-space: normal;
+          text-align: center;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          box-shadow: 0 2px 8px rgba(118, 94, 66, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+        }
+        .chips .chip:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 7px 15px rgba(121, 96, 67, 0.14);
+          border-color: rgba(162, 141, 116, 0.95);
+        }
+        .chips .chip:focus-visible {
+          outline: 2px solid #3b9a8c;
+          outline-offset: 2px;
+        }
+        .chips .chip.active,
+        .chips .chip[data-selected="true"] {
+          background: linear-gradient(138deg, #2f8b7e 0%, #2a786d 58%, #20655c 100%);
+          border-color: rgba(30, 87, 79, 0.95);
+          color: #f8fffd;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.33), 0 0 0 3px rgba(47, 139, 126, 0.27),
+            0 9px 18px rgba(28, 86, 77, 0.31);
+        }
+      `}</style>
     </div>
   );
 }
