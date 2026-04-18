@@ -212,14 +212,27 @@ function toConciseSentence(value, fallback = "—") {
 
 function compactEventResult(result) {
   return {
-    atmosphere: toConciseSentence(result.designNotes, "Elegant, intentional styling direction."),
-    layout: toConciseSentence(result.decorPlacement),
-    lighting: toConciseSentence(result.lighting),
-    floralDecor: toConciseSentence(result.floralDecor || result.designNotes),
-    sound: toConciseSentence(result.music),
+    eventVision: toConciseSentence(result.designNotes, "Elegant, intentional styling direction."),
+    setup: toConciseSentence(result.decorPlacement),
+    lightingMood: toConciseSentence(result.lighting),
+    signatureStyling: toConciseSentence(result.floralDecor || result.designNotes),
+    energy: toConciseSentence(result.music),
     guestFlow: toConciseSentence(result.roomFlow),
-    signatureMove: toConciseSentence(result.oneSmartMove),
+    moment: toConciseSentence(result.oneSmartMove),
   };
+}
+
+function getEventConceptSections(result) {
+  const brief = compactEventResult(result);
+  return [
+    ["Event Vision", brief.eventVision],
+    ["The Setup", brief.setup],
+    ["Lighting Mood", brief.lightingMood],
+    ["Signature Styling", brief.signatureStyling],
+    ["The Energy", brief.energy],
+    ["Guest Flow", brief.guestFlow],
+    ["The Moment", brief.moment],
+  ];
 }
 
 async function createReportPdf({ result, mode }) {
@@ -228,8 +241,6 @@ async function createReportPdf({ result, mode }) {
     { text: `Generated ${new Date().toLocaleString()}`, size: 10, bold: false },
     { text: "", size: 10, bold: false },
   ];
-  const eventBrief = compactEventResult(result);
-
   if (mode === "event" && result.styledPreviewImageUrl) {
     try {
       await toDataUrl(result.styledPreviewImageUrl);
@@ -250,15 +261,7 @@ async function createReportPdf({ result, mode }) {
 
   const sections =
     mode === "event"
-      ? [
-          ["Atmosphere", eventBrief.atmosphere],
-          ["Layout", eventBrief.layout],
-          ["Lighting", eventBrief.lighting],
-          ["Floral & Decor", eventBrief.floralDecor],
-          ["Sound", eventBrief.sound],
-          ["Guest Flow", eventBrief.guestFlow],
-          ["Signature Move", eventBrief.signatureMove],
-        ]
+      ? getEventConceptSections(result)
       : getReportSections(result).flatMap((section) =>
           section.items.map(([label, value]) => [`${section.title} — ${label}`, toConciseSentence(value)]),
         );
@@ -620,7 +623,7 @@ export default function HomePage() {
         <div className="results-header">
           <div>
             <p className="results-kicker">Final Report</p>
-            <h2>{mode === "event" ? "Your Event Atmosphere Blueprint" : "Your Atmosphere Blueprint"}</h2>
+            <h2>{mode === "event" ? "Your Event Concept Brief" : "Your Atmosphere Blueprint"}</h2>
           </div>
           <button
             type="button"
@@ -674,8 +677,8 @@ export default function HomePage() {
       <style jsx>{`
         .atmos-page {
           min-height: 100vh;
-          background: radial-gradient(circle at top, #2b1455 0%, #0a0b14 42%, #07070f 100%);
-          color: #f5f2ff;
+          background: radial-gradient(circle at top, #4a2a82 0%, #16142a 45%, #10111d 100%);
+          color: #fcf9ff;
           font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
           padding: 24px;
           display: grid;
@@ -685,11 +688,11 @@ export default function HomePage() {
         }
 
         .card {
-          background: rgba(20, 20, 35, 0.76);
-          border: 1px solid rgba(190, 166, 255, 0.16);
+          background: rgba(34, 33, 56, 0.8);
+          border: 1px solid rgba(206, 187, 255, 0.26);
           border-radius: 20px;
           backdrop-filter: blur(8px);
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+          box-shadow: 0 20px 50px rgba(7, 6, 18, 0.35);
         }
 
         .hero {
@@ -983,7 +986,8 @@ export default function HomePage() {
         .results {
           padding: 24px;
           display: grid;
-          gap: 18px;
+          gap: 22px;
+          overflow-x: hidden;
         }
 
         .results-header {
@@ -992,7 +996,7 @@ export default function HomePage() {
           justify-content: space-between;
           gap: 12px;
           align-items: end;
-          border-bottom: 1px solid rgba(201, 173, 255, 0.2);
+          border-bottom: 1px solid rgba(219, 198, 255, 0.35);
           padding-bottom: 14px;
         }
 
@@ -1007,8 +1011,8 @@ export default function HomePage() {
 
         h2 {
           margin: 0;
-          font-size: 1.32rem;
-          color: #f2eaff;
+          font-size: 1.45rem;
+          color: #f9f3ff;
           line-height: 1.2;
         }
 
@@ -1070,27 +1074,27 @@ export default function HomePage() {
         }
 
         .result-grid.event-grid {
-          gap: 18px;
+          gap: 20px;
         }
 
         .result-card {
-          border: 1px solid rgba(200, 174, 255, 0.15);
+          border: 1px solid rgba(224, 205, 255, 0.28);
           border-radius: 16px;
-          padding: 16px;
-          background: linear-gradient(160deg, rgba(20, 16, 34, 0.92), rgba(12, 10, 22, 0.9));
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+          padding: 18px;
+          background: linear-gradient(160deg, rgba(44, 37, 68, 0.95), rgba(30, 26, 46, 0.94));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .result-card h3 {
-          margin: 0 0 12px;
-          color: #eadcff;
-          font-size: 1.05rem;
+          margin: 0 0 14px;
+          color: #f8f2ff;
+          font-size: 1.15rem;
           letter-spacing: 0.01em;
         }
 
         .event-brief-card {
-          padding: 14px 16px;
-          background: linear-gradient(170deg, rgba(24, 19, 39, 0.96), rgba(14, 12, 25, 0.95));
+          padding: 18px;
+          background: linear-gradient(170deg, rgba(54, 45, 84, 0.96), rgba(35, 30, 55, 0.96));
         }
 
         .brief-eyebrow {
@@ -1098,15 +1102,15 @@ export default function HomePage() {
           text-transform: uppercase;
           letter-spacing: 0.08em;
           font-size: 11px;
-          color: #ba9aff;
+          color: #ceb2ff;
           font-weight: 700;
         }
 
         .brief-summary {
-          margin: 8px 0 0;
-          color: #f1e8ff;
-          line-height: 1.45;
-          font-size: 0.95rem;
+          margin: 10px 0 0;
+          color: #fff8ff;
+          line-height: 1.55;
+          font-size: 0.97rem;
         }
 
         .item {
@@ -1122,14 +1126,14 @@ export default function HomePage() {
         }
 
         .preview-panel {
-          border: 1px solid rgba(219, 196, 255, 0.2);
+          border: 1px solid rgba(224, 208, 255, 0.3);
           border-radius: 16px;
           padding: 20px;
-          background: linear-gradient(145deg, rgba(27, 21, 46, 0.95), rgba(14, 12, 26, 0.95));
+          background: linear-gradient(145deg, rgba(58, 49, 91, 0.95), rgba(33, 29, 54, 0.95));
           min-height: 180px;
           display: grid;
-          gap: 16px;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 30px rgba(0, 0, 0, 0.24);
+          gap: 18px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 22px 30px rgba(0, 0, 0, 0.2);
         }
 
         .preview-panel p {
@@ -1153,19 +1157,23 @@ export default function HomePage() {
 
         .preview-image-shell {
           border-radius: 14px;
-          border: 1px solid rgba(232, 214, 255, 0.26);
-          background: linear-gradient(160deg, rgba(17, 14, 29, 0.95), rgba(10, 9, 18, 0.95));
+          border: 1px solid rgba(237, 223, 255, 0.35);
+          background: linear-gradient(160deg, rgba(74, 63, 112, 0.92), rgba(41, 35, 64, 0.95));
           overflow: hidden;
           min-height: 220px;
-          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px;
+          box-shadow: 0 12px 26px rgba(9, 8, 18, 0.3);
         }
 
         .preview-image {
           display: block;
-          width: 100%;
+          max-width: 100%;
           height: auto;
-          min-height: 220px;
-          object-fit: cover;
+          max-height: 560px;
+          object-fit: contain;
         }
 
         .preview-fallback {
@@ -1354,7 +1362,7 @@ function PersonalResults({ result }) {
 function EventResults({ result }) {
   const hasStyledPreviewImage = Boolean(result.styledPreviewImageUrl);
   const hasStyledPreviewPrompt = Boolean(result.styledPreviewPrompt);
-  const brief = compactEventResult(result);
+  const conceptSections = getEventConceptSections(result);
 
   return (
     <div className="result-grid event-grid">
@@ -1395,13 +1403,14 @@ function EventResults({ result }) {
           <p className="preview-prompt">A styled preview concept prompt will appear here.</p>
         )}
       </article>
-      <EventBriefCard title="Atmosphere" summary={brief.atmosphere} />
-      <EventBriefCard title="Layout" summary={brief.layout} />
-      <EventBriefCard title="Lighting" summary={brief.lighting} />
-      <EventBriefCard title="Floral & Decor" summary={brief.floralDecor} />
-      <EventBriefCard title="Sound" summary={brief.sound} />
-      <EventBriefCard title="Guest Flow" summary={brief.guestFlow} />
-      <EventBriefCard title="Signature Move" summary={brief.signatureMove} className="smart-move" />
+      {conceptSections.map(([title, summary], index) => (
+        <EventBriefCard
+          key={title}
+          title={title}
+          summary={summary}
+          className={index === conceptSections.length - 1 ? "smart-move" : ""}
+        />
+      ))}
     </div>
   );
 }
