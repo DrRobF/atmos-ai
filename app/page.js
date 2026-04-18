@@ -52,12 +52,13 @@ function getReportSections(result) {
 
   if (result.mode === "event") {
     return [
-      { title: "Lighting Plan", items: [["Recommendations", result.lighting]] },
-      { title: "Decor Placement", items: [["Recommendations", result.decorPlacement]] },
-      { title: "Music & Entertainment", items: [["Recommendations", result.music]] },
-      { title: "Flow of the Room", items: [["Recommendations", result.roomFlow]] },
-      { title: "Design Notes", items: [["Recommendations", result.designNotes]] },
-      { title: "One Smart Move", items: [["High-Impact Action", result.oneSmartMove]] },
+      { title: "Atmosphere", items: [["Summary", result.designNotes]] },
+      { title: "Layout", items: [["Direction", result.decorPlacement]] },
+      { title: "Lighting", items: [["Direction", result.lighting]] },
+      { title: "Floral & Decor", items: [["Direction", result.floralDecor]] },
+      { title: "Sound", items: [["Direction", result.music]] },
+      { title: "Guest Flow", items: [["Direction", result.roomFlow]] },
+      { title: "Signature Move", items: [["Highlight", result.oneSmartMove]] },
     ];
   }
 
@@ -118,7 +119,59 @@ async function toDataUrl(sourceUrl) {
 }
 
 function escapePdfText(value) {
-  return String(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  return String(value)
+    .replace(/[^\x20-\x7E]/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+function createPdfBlob(linesByPage) {
+  const objects = [];
+  const addObject = (content) => {
+    objects.push(content);
+    return objects.length;
+  };
+  const byteLength = (value) => new TextEncoder().encode(value).length;
+
+  const catalogId = addObject("<< /Type /Catalog /Pages 2 0 R >>");
+  const pagesId = addObject("");
+  const pageIds = [];
+  const fontRegularId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const fontBoldId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+
+  linesByPage.forEach((lines) => {
+    const commands = lines
+      .map((line) => {
+        const escaped = escapePdfText(line.text);
+        const fontRef = line.bold ? "/F2" : "/F1";
+        return `BT ${fontRef} ${line.size} Tf 44 ${line.y} Td (${escaped}) Tj ET`;
+      })
+      .join("\n");
+
+    const contentId = addObject(`<< /Length ${byteLength(commands)} >>\nstream\n${commands}\nendstream`);
+    const pageId = addObject(
+      `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Contents ${contentId} 0 R /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> >> >>`,
+    );
+    pageIds.push(pageId);
+  });
+
+  objects[pagesId - 1] = `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`;
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((obj, index) => {
+    offsets.push(byteLength(pdf));
+    pdf += `${index + 1} 0 obj\n${obj}\nendobj\n`;
+  });
+  const xrefStart = byteLength(pdf);
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer << /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+  return new Blob([pdf], { type: "application/pdf" });
 }
 
 function wrapText(value, maxChars = 92) {
@@ -147,53 +200,94 @@ function wrapText(value, maxChars = 92) {
   return lines;
 }
 
-function createPdfBlob(linesByPage) {
-  const objects = [];
-  const addObject = (content) => {
-    objects.push(content);
-    return objects.length;
+function toConciseSentence(value, fallback = "—") {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    return fallback;
+  }
+  const parts = text.match(/[^.!?]+[.!?]?/g) || [];
+  const trimmed = parts[0]?.trim() || text;
+  return trimmed.length > 160 ? `${trimmed.slice(0, 157)}...` : trimmed;
+}
+
+function compactEventResult(result) {
+  return {
+    atmosphere: toConciseSentence(result.designNotes, "Elegant, intentional styling direction."),
+    layout: toConciseSentence(result.decorPlacement),
+    lighting: toConciseSentence(result.lighting),
+    floralDecor: toConciseSentence(result.floralDecor || result.designNotes),
+    sound: toConciseSentence(result.music),
+    guestFlow: toConciseSentence(result.roomFlow),
+    signatureMove: toConciseSentence(result.oneSmartMove),
   };
+}
 
-  const catalogId = addObject("<< /Type /Catalog /Pages 2 0 R >>");
-  const pagesId = addObject("");
-  const pageIds = [];
-  const contentIds = [];
-  const fontRegularId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-  const fontBoldId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+async function createReportPdf({ result, mode }) {
+  const allLines = [
+    { text: mode === "event" ? "Atmos AI Event Concept Brief" : "Atmos AI Personal Atmosphere Brief", size: 16, bold: true },
+    { text: `Generated ${new Date().toLocaleString()}`, size: 10, bold: false },
+    { text: "", size: 10, bold: false },
+  ];
+  const eventBrief = compactEventResult(result);
 
-  linesByPage.forEach((lines) => {
-    const commands = lines
-      .map((line) => {
-        const escaped = escapePdfText(line.text);
-        const fontRef = line.bold ? "/F2" : "/F1";
-        return `BT ${fontRef} ${line.size} Tf 44 ${line.y} Td (${escaped}) Tj ET`;
-      })
-      .join("\n");
+  if (mode === "event" && result.styledPreviewImageUrl) {
+    try {
+      await toDataUrl(result.styledPreviewImageUrl);
+      allLines.push({
+        text: "Styled preview image is included in-app with this concept brief.",
+        size: 10,
+        bold: false,
+      });
+    } catch {
+      allLines.push({
+        text: "Styled preview image unavailable; concise brief exported.",
+        size: 10,
+        bold: false,
+      });
+    }
+    allLines.push({ text: "", size: 10, bold: false });
+  }
 
-    const contentId = addObject(`<< /Length ${commands.length} >>\nstream\n${commands}\nendstream`);
-    const pageId = addObject(
-      `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Contents ${contentId} 0 R /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> >> >>`
-    );
-    contentIds.push(contentId);
-    pageIds.push(pageId);
+  const sections =
+    mode === "event"
+      ? [
+          ["Atmosphere", eventBrief.atmosphere],
+          ["Layout", eventBrief.layout],
+          ["Lighting", eventBrief.lighting],
+          ["Floral & Decor", eventBrief.floralDecor],
+          ["Sound", eventBrief.sound],
+          ["Guest Flow", eventBrief.guestFlow],
+          ["Signature Move", eventBrief.signatureMove],
+        ]
+      : getReportSections(result).flatMap((section) =>
+          section.items.map(([label, value]) => [`${section.title} — ${label}`, toConciseSentence(value)]),
+        );
+
+  sections.forEach(([title, content]) => {
+    allLines.push({ text: title, size: 12, bold: true });
+    wrapText(content, 88)
+      .slice(0, 2)
+      .forEach((line) => allLines.push({ text: `• ${line}`, size: 10, bold: false }));
+    allLines.push({ text: "", size: 10, bold: false });
   });
 
-  objects[pagesId - 1] = `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`;
-
-  let pdf = "%PDF-1.4\n";
-  const offsets = [0];
-  objects.forEach((obj, index) => {
-    offsets.push(pdf.length);
-    pdf += `${index + 1} 0 obj\n${obj}\nendobj\n`;
+  const linesByPage = [];
+  let pageLines = [];
+  let y = 800;
+  allLines.forEach((line) => {
+    if (y < 50) {
+      linesByPage.push(pageLines);
+      pageLines = [];
+      y = 800;
+    }
+    pageLines.push({ ...line, y });
+    y -= line.size >= 12 ? 18 : 14;
   });
-  const xrefStart = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  offsets.slice(1).forEach((offset) => {
-    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  });
-  pdf += `trailer << /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+  if (pageLines.length) {
+    linesByPage.push(pageLines);
+  }
 
-  return new Blob([pdf], { type: "application/pdf" });
+  return createPdfBlob(linesByPage);
 }
 
 async function downloadReportPdf({ result, mode }) {
@@ -201,68 +295,7 @@ async function downloadReportPdf({ result, mode }) {
     return;
   }
 
-  const reportSections = getReportSections(result);
-  const reportTitle =
-    mode === "event" ? "Atmos AI Event Atmosphere Report" : "Atmos AI Personal Atmosphere Report";
-  const allLines = [
-    { text: reportTitle, size: 16, bold: true },
-    { text: `Generated on ${new Date().toLocaleString()}`, size: 10, bold: false },
-    { text: "", size: 11, bold: false },
-  ];
-
-  if (mode === "event" && result.styledPreviewImageUrl) {
-    try {
-      await toDataUrl(result.styledPreviewImageUrl);
-      allLines.push({
-        text: "Styled Preview image is available in-app. Image embedding may vary by browser security policy.",
-        size: 10,
-        bold: false,
-      });
-    } catch (error) {
-      allLines.push({
-        text: "Styled preview image unavailable for export. Text report included.",
-        size: 10,
-        bold: false,
-      });
-    }
-    allLines.push({ text: "", size: 11, bold: false });
-  }
-
-  if (mode === "event" && result.styledPreviewPrompt) {
-    allLines.push({ text: "Styled Preview Prompt", size: 12, bold: true });
-    wrapText(result.styledPreviewPrompt).forEach((line) => {
-      allLines.push({ text: line, size: 10, bold: false });
-    });
-    allLines.push({ text: "", size: 11, bold: false });
-  }
-
-  reportSections.forEach((section) => {
-    allLines.push({ text: section.title, size: 12, bold: true });
-    section.items.forEach(([label, value]) => {
-      wrapText(`${label}: ${normalizeValue(value)}`).forEach((line) => {
-        allLines.push({ text: line, size: 10, bold: false });
-      });
-    });
-    allLines.push({ text: "", size: 11, bold: false });
-  });
-
-  const linesByPage = [];
-  let currentPage = [];
-  let y = 798;
-  allLines.forEach((line) => {
-    if (y < 48) {
-      linesByPage.push(currentPage);
-      currentPage = [];
-      y = 798;
-    }
-    currentPage.push({ ...line, y });
-    y -= line.size > 11 ? 20 : 14;
-  });
-  if (currentPage.length) {
-    linesByPage.push(currentPage);
-  }
-
-  const pdfBlob = createPdfBlob(linesByPage);
+  const pdfBlob = await createReportPdf({ result, mode });
   const blobUrl = URL.createObjectURL(pdfBlob);
   const link = document.createElement("a");
   const fileMode = mode === "event" ? "event" : "personal";
@@ -709,9 +742,9 @@ export default function HomePage() {
         }
 
         .mode-button {
-          border: 1px solid rgba(201, 174, 255, 0.24);
-          background: rgba(255, 255, 255, 0.03);
-          color: #d9c9ff;
+          border: 1px solid rgba(201, 174, 255, 0.38);
+          background: rgba(255, 255, 255, 0.05);
+          color: #efe6ff;
           font-weight: 600;
           border-radius: 10px;
           padding: 10px 12px;
@@ -730,10 +763,10 @@ export default function HomePage() {
 
         .mode-button.active {
           background: linear-gradient(120deg, #b086ff 2%, #784fff 52%, #5f43e7 100%);
-          border-color: #e1d0ff;
+          border-color: #ffffff;
           color: #ffffff;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 0 0 3px rgba(176, 134, 255, 0.45),
-            0 12px 22px rgba(90, 55, 210, 0.54);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 4px rgba(176, 134, 255, 0.58),
+            0 14px 26px rgba(90, 55, 210, 0.62);
         }
 
         .selection-mark {
@@ -885,8 +918,8 @@ export default function HomePage() {
         }
 
         .chip {
-          border: 1px solid rgba(204, 178, 255, 0.24);
-          color: #dfd2ff;
+          border: 1px solid rgba(204, 178, 255, 0.34);
+          color: #efe5ff;
           padding: 8px 12px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.03);
@@ -907,10 +940,10 @@ export default function HomePage() {
 
         .chip.active {
           background: linear-gradient(120deg, rgba(181, 136, 255, 0.95), rgba(104, 70, 232, 0.97));
-          border-color: rgba(239, 225, 255, 0.96);
+          border-color: rgba(255, 255, 255, 1);
           color: #ffffff;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 0 0 3px rgba(174, 131, 255, 0.42),
-            0 12px 22px rgba(82, 48, 190, 0.52);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 4px rgba(174, 131, 255, 0.52),
+            0 12px 22px rgba(82, 48, 190, 0.56);
         }
 
         .cta-row {
@@ -1053,6 +1086,27 @@ export default function HomePage() {
           color: #eadcff;
           font-size: 1.05rem;
           letter-spacing: 0.01em;
+        }
+
+        .event-brief-card {
+          padding: 14px 16px;
+          background: linear-gradient(170deg, rgba(24, 19, 39, 0.96), rgba(14, 12, 25, 0.95));
+        }
+
+        .brief-eyebrow {
+          margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-size: 11px;
+          color: #ba9aff;
+          font-weight: 700;
+        }
+
+        .brief-summary {
+          margin: 8px 0 0;
+          color: #f1e8ff;
+          line-height: 1.45;
+          font-size: 0.95rem;
         }
 
         .item {
@@ -1300,6 +1354,7 @@ function PersonalResults({ result }) {
 function EventResults({ result }) {
   const hasStyledPreviewImage = Boolean(result.styledPreviewImageUrl);
   const hasStyledPreviewPrompt = Boolean(result.styledPreviewPrompt);
+  const brief = compactEventResult(result);
 
   return (
     <div className="result-grid event-grid">
@@ -1331,21 +1386,31 @@ function EventResults({ result }) {
             </p>
           </div>
         )}
-        {hasStyledPreviewPrompt && <p className="preview-prompt">{result.styledPreviewPrompt}</p>}
+        {hasStyledPreviewPrompt && (
+          <p className="preview-prompt">
+            {toConciseSentence(result.styledPreviewPrompt, "A cinematic design direction will appear here.")}
+          </p>
+        )}
         {!hasStyledPreviewPrompt && (
           <p className="preview-prompt">A styled preview concept prompt will appear here.</p>
         )}
       </article>
-      <ResultCard title="Lighting Plan" items={[["Recommendations", result.lighting]]} />
-      <ResultCard title="Decor Placement" items={[["Recommendations", result.decorPlacement]]} />
-      <ResultCard title="Music & Entertainment" items={[["Recommendations", result.music]]} />
-      <ResultCard title="Flow of the Room" items={[["Recommendations", result.roomFlow]]} />
-      <ResultCard title="Design Notes" items={[["Recommendations", result.designNotes]]} />
-      <ResultCard
-        title="One Smart Move"
-        items={[["High-Impact Action", result.oneSmartMove]]}
-        className="smart-move"
-      />
+      <EventBriefCard title="Atmosphere" summary={brief.atmosphere} />
+      <EventBriefCard title="Layout" summary={brief.layout} />
+      <EventBriefCard title="Lighting" summary={brief.lighting} />
+      <EventBriefCard title="Floral & Decor" summary={brief.floralDecor} />
+      <EventBriefCard title="Sound" summary={brief.sound} />
+      <EventBriefCard title="Guest Flow" summary={brief.guestFlow} />
+      <EventBriefCard title="Signature Move" summary={brief.signatureMove} className="smart-move" />
     </div>
+  );
+}
+
+function EventBriefCard({ title, summary, className = "" }) {
+  return (
+    <article className={`result-card event-brief-card ${className}`.trim()}>
+      <p className="brief-eyebrow">{title}</p>
+      <p className="brief-summary">{summary}</p>
+    </article>
   );
 }
