@@ -35,6 +35,207 @@ const eventStyleOptions = [
 
 const initialResult = null;
 
+function normalizeValue(value) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).join(", ");
+  }
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  return String(value);
+}
+
+function getReportSections(result) {
+  if (!result) {
+    return [];
+  }
+
+  if (result.mode === "event") {
+    return [
+      { title: "Lighting Plan", items: [["Recommendations", result.lighting]] },
+      { title: "Decor Placement", items: [["Recommendations", result.decorPlacement]] },
+      { title: "Music & Entertainment", items: [["Recommendations", result.music]] },
+      { title: "Flow of the Room", items: [["Recommendations", result.roomFlow]] },
+      { title: "Design Notes", items: [["Recommendations", result.designNotes]] },
+      { title: "One Smart Move", items: [["High-Impact Action", result.oneSmartMove]] },
+    ];
+  }
+
+  return [
+    {
+      title: "Lighting",
+      items: [
+        ["Placement", result.lighting?.whereLightShouldGo],
+        ["Brightness", result.lighting?.brightnessLevel],
+        ["Temperature", result.lighting?.warmCoolFeel],
+      ],
+    },
+    {
+      title: "Placement",
+      items: [
+        ["Move", result.placement?.whatToMove],
+        ["Face", result.placement?.whatToFace],
+        ["Remove", result.placement?.whatToRemove],
+        ["Focal Point", result.placement?.focalPoint],
+      ],
+    },
+    {
+      title: "Sound",
+      items: [
+        ["Style", result.sound?.musicStyle],
+        ["Tempo", result.sound?.tempo],
+        ["Energy", result.sound?.energy],
+        ["Search Phrases", normalizeValue(result.sound?.searchPhrases)],
+      ],
+    },
+    {
+      title: "Song Ideas",
+      items: (result.songIdeas || []).map((idea, index) => [`Idea ${index + 1}`, idea]),
+    },
+    {
+      title: "Environment",
+      items: [
+        ["Feel", result.environment?.emotionalSpatialFeel],
+        ["Adjustments", result.environment?.roomAdjustments],
+      ],
+    },
+    { title: "One Smart Move", items: [["Suggestion", result.oneSmartMove]] },
+  ];
+}
+
+function openReportPrintView({ result, mode }) {
+  if (!result || typeof window === "undefined") {
+    return;
+  }
+
+  const reportSections = getReportSections(result);
+  const reportTitle = mode === "event" ? "Atmos AI Event Atmosphere Report" : "Atmos AI Personal Atmosphere Report";
+  const timestamp = new Date().toLocaleString();
+  const styledPreviewMarkup =
+    mode === "event" && result.styledPreviewImageUrl
+      ? `<figure class="hero-image-block"><img src="${result.styledPreviewImageUrl}" alt="Styled event preview"/></figure>`
+      : "";
+
+  const previewPromptMarkup =
+    mode === "event" && result.styledPreviewPrompt
+      ? `<section class="report-block"><h2>Styled Preview Prompt</h2><p>${result.styledPreviewPrompt}</p></section>`
+      : "";
+
+  const reportMarkup = reportSections
+    .map(
+      (section) => `
+        <section class="report-block">
+          <h2>${section.title}</h2>
+          ${section.items
+            .map(
+              ([label, value]) =>
+                `<p><span class="label">${label}:</span> ${normalizeValue(value)}</p>`
+            )
+            .join("")}
+        </section>
+      `
+    )
+    .join("");
+
+  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=980,height=1200");
+  if (!printWindow) {
+    return;
+  }
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>${reportTitle}</title>
+        <style>
+          :root { color-scheme: light; }
+          body {
+            margin: 0;
+            padding: 40px;
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            color: #1d1730;
+            background: #f6f5ff;
+          }
+          .page {
+            background: white;
+            border: 1px solid #ece8ff;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 10px 30px rgba(44, 26, 91, 0.08);
+          }
+          h1 {
+            margin: 0;
+            font-size: 26px;
+            color: #2a1855;
+          }
+          .meta {
+            margin: 10px 0 22px;
+            color: #584c78;
+            font-size: 13px;
+          }
+          .hero-image-block {
+            margin: 0 0 20px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid #ddd4f8;
+          }
+          .hero-image-block img {
+            width: 100%;
+            display: block;
+            max-height: 420px;
+            object-fit: cover;
+          }
+          .report-grid {
+            display: grid;
+            gap: 14px;
+          }
+          .report-block {
+            border: 1px solid #e5dcff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          h2 {
+            margin: 0 0 10px;
+            color: #3a256a;
+            font-size: 17px;
+          }
+          p {
+            margin: 0 0 8px;
+            line-height: 1.5;
+            color: #2f2747;
+          }
+          .label {
+            font-weight: 700;
+            color: #23184b;
+          }
+          @media print {
+            body { background: white; padding: 0; }
+            .page {
+              border: none;
+              box-shadow: none;
+              border-radius: 0;
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <article class="page">
+          <h1>${reportTitle}</h1>
+          <p class="meta">Generated on ${timestamp}</p>
+          ${styledPreviewMarkup}
+          ${previewPromptMarkup}
+          <div class="report-grid">${reportMarkup}</div>
+        </article>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
 export default function HomePage() {
   const [mode, setMode] = useState("personal");
 
@@ -327,7 +528,20 @@ export default function HomePage() {
       </section>
 
       <section className="results card">
-        <h2>{mode === "event" ? "Your Event Atmosphere Blueprint" : "Your Atmosphere Blueprint"}</h2>
+        <div className="results-header">
+          <div>
+            <p className="results-kicker">Final Report</p>
+            <h2>{mode === "event" ? "Your Event Atmosphere Blueprint" : "Your Atmosphere Blueprint"}</h2>
+          </div>
+          <button
+            type="button"
+            className="download-btn"
+            onClick={() => openReportPrintView({ result, mode })}
+            disabled={!result || isLoading}
+          >
+            Download PDF
+          </button>
+        </div>
 
         {!result && !isLoading && (
           <div className="empty-state">
@@ -440,7 +654,7 @@ export default function HomePage() {
 
         .mode-button {
           border: 1px solid rgba(201, 174, 255, 0.24);
-          background: rgba(255, 255, 255, 0.01);
+          background: rgba(255, 255, 255, 0.03);
           color: #d9c9ff;
           font-weight: 600;
           border-radius: 10px;
@@ -458,7 +672,8 @@ export default function HomePage() {
           background: linear-gradient(120deg, #a57bff 5%, #764fff 45%, #6247ff 100%);
           border-color: #c7aeff;
           color: white;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 20px rgba(90, 55, 210, 0.46);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 2px rgba(167, 127, 255, 0.3),
+            0 10px 20px rgba(90, 55, 210, 0.46);
         }
 
         .builder {
@@ -502,6 +717,13 @@ export default function HomePage() {
         button:focus,
         .chip:focus {
           outline: 2px solid #b088ff;
+          outline-offset: 2px;
+        }
+
+        .download-btn:focus-visible,
+        .chip:focus-visible,
+        .mode-button:focus-visible {
+          outline: 2px solid #d7c0ff;
           outline-offset: 2px;
         }
 
@@ -593,16 +815,25 @@ export default function HomePage() {
           color: #dfd2ff;
           padding: 8px 12px;
           border-radius: 999px;
-          background: transparent;
+          background: rgba(255, 255, 255, 0.03);
           cursor: pointer;
-          transition: all 0.2s ease;
+          font-weight: 500;
+          transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease,
+            background 0.2s ease;
+        }
+
+        .chip:hover {
+          transform: translateY(-1px);
+          border-color: rgba(221, 196, 255, 0.45);
+          color: #f2eaff;
         }
 
         .chip.active {
-          background: linear-gradient(120deg, #9d6dff, #6f48ff);
-          border-color: #c7aeff;
-          color: white;
-          box-shadow: 0 8px 20px rgba(100, 70, 210, 0.5);
+          background: linear-gradient(120deg, rgba(169, 124, 255, 0.92), rgba(102, 70, 226, 0.94));
+          border-color: rgba(225, 205, 255, 0.85);
+          color: #fff;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.33), 0 0 0 2px rgba(173, 132, 255, 0.32),
+            0 10px 22px rgba(82, 48, 190, 0.46);
         }
 
         .cta-row {
@@ -641,12 +872,57 @@ export default function HomePage() {
 
         .results {
           padding: 24px;
+          display: grid;
+          gap: 18px;
+        }
+
+        .results-header {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: end;
+          border-bottom: 1px solid rgba(201, 173, 255, 0.2);
+          padding-bottom: 14px;
+        }
+
+        .results-kicker {
+          margin: 0 0 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #bfa3ff;
+          font-size: 11px;
+          font-weight: 700;
         }
 
         h2 {
-          margin: 0 0 16px;
-          font-size: 1.15rem;
-          color: #ebe1ff;
+          margin: 0;
+          font-size: 1.32rem;
+          color: #f2eaff;
+          line-height: 1.2;
+        }
+
+        .download-btn {
+          border: 1px solid rgba(214, 191, 255, 0.35);
+          color: #f3eaff;
+          background: linear-gradient(160deg, rgba(44, 31, 76, 0.95), rgba(23, 18, 37, 0.95));
+          border-radius: 12px;
+          padding: 10px 14px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.92rem;
+          transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .download-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          border-color: rgba(224, 202, 255, 0.62);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .download-btn:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
         }
 
         .empty-state,
@@ -680,31 +956,33 @@ export default function HomePage() {
         .result-grid {
           display: grid;
           grid-template-columns: repeat(1, minmax(0, 1fr));
-          gap: 12px;
+          gap: 16px;
         }
 
         .result-grid.event-grid {
-          gap: 14px;
+          gap: 18px;
         }
 
         .result-card {
           border: 1px solid rgba(200, 174, 255, 0.15);
-          border-radius: 14px;
-          padding: 14px;
-          background: rgba(12, 10, 20, 0.78);
+          border-radius: 16px;
+          padding: 16px;
+          background: linear-gradient(160deg, rgba(20, 16, 34, 0.92), rgba(12, 10, 22, 0.9));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
 
         .result-card h3 {
-          margin: 0 0 8px;
-          color: #dccaff;
-          font-size: 1rem;
+          margin: 0 0 12px;
+          color: #eadcff;
+          font-size: 1.05rem;
+          letter-spacing: 0.01em;
         }
 
         .item {
-          margin: 0 0 7px;
-          color: #cdbce9;
+          margin: 0 0 10px;
+          color: #daccf2;
           font-size: 14px;
-          line-height: 1.4;
+          line-height: 1.5;
         }
 
         .item strong {
@@ -715,11 +993,11 @@ export default function HomePage() {
         .preview-panel {
           border: 1px solid rgba(219, 196, 255, 0.2);
           border-radius: 16px;
-          padding: 18px;
+          padding: 20px;
           background: linear-gradient(145deg, rgba(27, 21, 46, 0.95), rgba(14, 12, 26, 0.95));
           min-height: 180px;
           display: grid;
-          gap: 14px;
+          gap: 16px;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 30px rgba(0, 0, 0, 0.24);
         }
 
@@ -871,6 +1149,7 @@ function Selector({ label, options, selected, onSelect }) {
             key={option}
             type="button"
             className={`chip ${selected === option ? "active" : ""}`}
+            aria-pressed={selected === option}
             onClick={() => onSelect(option)}
           >
             {option}
