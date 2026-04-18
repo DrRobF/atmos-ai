@@ -103,137 +103,175 @@ function getReportSections(result) {
   ];
 }
 
-function openReportPrintView({ result, mode }) {
-  if (!result || typeof window === "undefined") {
+async function toDataUrl(sourceUrl) {
+  const response = await fetch(sourceUrl);
+  if (!response.ok) {
+    throw new Error("Image could not be loaded.");
+  }
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result?.toString() ?? "");
+    reader.onerror = () => reject(new Error("Image conversion failed."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function escapePdfText(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function wrapText(value, maxChars = 92) {
+  const words = String(value).split(/\s+/);
+  const lines = [];
+  let current = "";
+
+  words.forEach((word) => {
+    if (!word) {
+      return;
+    }
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > maxChars) {
+      if (current) {
+        lines.push(current);
+      }
+      current = word;
+    } else {
+      current = candidate;
+    }
+  });
+
+  if (current) {
+    lines.push(current);
+  }
+  return lines;
+}
+
+function createPdfBlob(linesByPage) {
+  const objects = [];
+  const addObject = (content) => {
+    objects.push(content);
+    return objects.length;
+  };
+
+  const catalogId = addObject("<< /Type /Catalog /Pages 2 0 R >>");
+  const pagesId = addObject("");
+  const pageIds = [];
+  const contentIds = [];
+  const fontRegularId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const fontBoldId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+
+  linesByPage.forEach((lines) => {
+    const commands = lines
+      .map((line) => {
+        const escaped = escapePdfText(line.text);
+        const fontRef = line.bold ? "/F2" : "/F1";
+        return `BT ${fontRef} ${line.size} Tf 44 ${line.y} Td (${escaped}) Tj ET`;
+      })
+      .join("\n");
+
+    const contentId = addObject(`<< /Length ${commands.length} >>\nstream\n${commands}\nendstream`);
+    const pageId = addObject(
+      `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Contents ${contentId} 0 R /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> >> >>`
+    );
+    contentIds.push(contentId);
+    pageIds.push(pageId);
+  });
+
+  objects[pagesId - 1] = `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`;
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((obj, index) => {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${obj}\nendobj\n`;
+  });
+  const xrefStart = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer << /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+  return new Blob([pdf], { type: "application/pdf" });
+}
+
+async function downloadReportPdf({ result, mode }) {
+  if (!result) {
     return;
   }
 
   const reportSections = getReportSections(result);
-  const reportTitle = mode === "event" ? "Atmos AI Event Atmosphere Report" : "Atmos AI Personal Atmosphere Report";
-  const timestamp = new Date().toLocaleString();
-  const styledPreviewMarkup =
-    mode === "event" && result.styledPreviewImageUrl
-      ? `<figure class="hero-image-block"><img src="${result.styledPreviewImageUrl}" alt="Styled event preview"/></figure>`
-      : "";
+  const reportTitle =
+    mode === "event" ? "Atmos AI Event Atmosphere Report" : "Atmos AI Personal Atmosphere Report";
+  const allLines = [
+    { text: reportTitle, size: 16, bold: true },
+    { text: `Generated on ${new Date().toLocaleString()}`, size: 10, bold: false },
+    { text: "", size: 11, bold: false },
+  ];
 
-  const previewPromptMarkup =
-    mode === "event" && result.styledPreviewPrompt
-      ? `<section class="report-block"><h2>Styled Preview Prompt</h2><p>${result.styledPreviewPrompt}</p></section>`
-      : "";
-
-  const reportMarkup = reportSections
-    .map(
-      (section) => `
-        <section class="report-block">
-          <h2>${section.title}</h2>
-          ${section.items
-            .map(
-              ([label, value]) =>
-                `<p><span class="label">${label}:</span> ${normalizeValue(value)}</p>`
-            )
-            .join("")}
-        </section>
-      `
-    )
-    .join("");
-
-  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=980,height=1200");
-  if (!printWindow) {
-    return;
+  if (mode === "event" && result.styledPreviewImageUrl) {
+    try {
+      await toDataUrl(result.styledPreviewImageUrl);
+      allLines.push({
+        text: "Styled Preview image is available in-app. Image embedding may vary by browser security policy.",
+        size: 10,
+        bold: false,
+      });
+    } catch (error) {
+      allLines.push({
+        text: "Styled preview image unavailable for export. Text report included.",
+        size: 10,
+        bold: false,
+      });
+    }
+    allLines.push({ text: "", size: 11, bold: false });
   }
 
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>${reportTitle}</title>
-        <style>
-          :root { color-scheme: light; }
-          body {
-            margin: 0;
-            padding: 40px;
-            font-family: Inter, "Segoe UI", Arial, sans-serif;
-            color: #1d1730;
-            background: #f6f5ff;
-          }
-          .page {
-            background: white;
-            border: 1px solid #ece8ff;
-            border-radius: 20px;
-            padding: 28px;
-            box-shadow: 0 10px 30px rgba(44, 26, 91, 0.08);
-          }
-          h1 {
-            margin: 0;
-            font-size: 26px;
-            color: #2a1855;
-          }
-          .meta {
-            margin: 10px 0 22px;
-            color: #584c78;
-            font-size: 13px;
-          }
-          .hero-image-block {
-            margin: 0 0 20px;
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid #ddd4f8;
-          }
-          .hero-image-block img {
-            width: 100%;
-            display: block;
-            max-height: 420px;
-            object-fit: cover;
-          }
-          .report-grid {
-            display: grid;
-            gap: 14px;
-          }
-          .report-block {
-            border: 1px solid #e5dcff;
-            border-radius: 14px;
-            padding: 14px 16px;
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          h2 {
-            margin: 0 0 10px;
-            color: #3a256a;
-            font-size: 17px;
-          }
-          p {
-            margin: 0 0 8px;
-            line-height: 1.5;
-            color: #2f2747;
-          }
-          .label {
-            font-weight: 700;
-            color: #23184b;
-          }
-          @media print {
-            body { background: white; padding: 0; }
-            .page {
-              border: none;
-              box-shadow: none;
-              border-radius: 0;
-              padding: 0;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <article class="page">
-          <h1>${reportTitle}</h1>
-          <p class="meta">Generated on ${timestamp}</p>
-          ${styledPreviewMarkup}
-          ${previewPromptMarkup}
-          <div class="report-grid">${reportMarkup}</div>
-        </article>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
+  if (mode === "event" && result.styledPreviewPrompt) {
+    allLines.push({ text: "Styled Preview Prompt", size: 12, bold: true });
+    wrapText(result.styledPreviewPrompt).forEach((line) => {
+      allLines.push({ text: line, size: 10, bold: false });
+    });
+    allLines.push({ text: "", size: 11, bold: false });
+  }
+
+  reportSections.forEach((section) => {
+    allLines.push({ text: section.title, size: 12, bold: true });
+    section.items.forEach(([label, value]) => {
+      wrapText(`${label}: ${normalizeValue(value)}`).forEach((line) => {
+        allLines.push({ text: line, size: 10, bold: false });
+      });
+    });
+    allLines.push({ text: "", size: 11, bold: false });
+  });
+
+  const linesByPage = [];
+  let currentPage = [];
+  let y = 798;
+  allLines.forEach((line) => {
+    if (y < 48) {
+      linesByPage.push(currentPage);
+      currentPage = [];
+      y = 798;
+    }
+    currentPage.push({ ...line, y });
+    y -= line.size > 11 ? 20 : 14;
+  });
+  if (currentPage.length) {
+    linesByPage.push(currentPage);
+  }
+
+  const pdfBlob = createPdfBlob(linesByPage);
+  const blobUrl = URL.createObjectURL(pdfBlob);
+  const link = document.createElement("a");
+  const fileMode = mode === "event" ? "event" : "personal";
+  link.href = blobUrl;
+  link.download = `atmos-ai-${fileMode}-report.pdf`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
 }
 
 export default function HomePage() {
@@ -257,6 +295,7 @@ export default function HomePage() {
   const [eventNotes, setEventNotes] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(initialResult);
 
@@ -346,6 +385,22 @@ export default function HomePage() {
     }
   }
 
+  async function handleDownloadPdf() {
+    if (!result || isDownloadingPdf) {
+      return;
+    }
+
+    setError("");
+    setIsDownloadingPdf(true);
+    try {
+      await downloadReportPdf({ result, mode });
+    } catch (downloadError) {
+      setError(downloadError.message || "Unable to download PDF right now.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }
+
   return (
     <main className="atmos-page">
       <section className="hero card">
@@ -372,6 +427,7 @@ export default function HomePage() {
                 setError("");
               }}
             >
+              {mode === item.value && <span className="selection-mark">✓</span>}
               {item.label}
             </button>
           ))}
@@ -536,10 +592,10 @@ export default function HomePage() {
           <button
             type="button"
             className="download-btn"
-            onClick={() => openReportPrintView({ result, mode })}
-            disabled={!result || isLoading}
+            onClick={handleDownloadPdf}
+            disabled={!result || isLoading || isDownloadingPdf}
           >
-            Download PDF
+            {isDownloadingPdf ? "Preparing PDF..." : "Download PDF"}
           </button>
         </div>
 
@@ -661,6 +717,10 @@ export default function HomePage() {
           padding: 10px 12px;
           cursor: pointer;
           transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
         }
 
         .mode-button:hover {
@@ -669,11 +729,25 @@ export default function HomePage() {
         }
 
         .mode-button.active {
-          background: linear-gradient(120deg, #a57bff 5%, #764fff 45%, #6247ff 100%);
-          border-color: #c7aeff;
-          color: white;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 2px rgba(167, 127, 255, 0.3),
-            0 10px 20px rgba(90, 55, 210, 0.46);
+          background: linear-gradient(120deg, #b086ff 2%, #784fff 52%, #5f43e7 100%);
+          border-color: #e1d0ff;
+          color: #ffffff;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 0 0 3px rgba(176, 134, 255, 0.45),
+            0 12px 22px rgba(90, 55, 210, 0.54);
+        }
+
+        .selection-mark {
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 800;
+          color: #41248d;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.8);
         }
 
         .builder {
@@ -820,6 +894,9 @@ export default function HomePage() {
           font-weight: 500;
           transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease,
             background 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
         }
 
         .chip:hover {
@@ -829,11 +906,11 @@ export default function HomePage() {
         }
 
         .chip.active {
-          background: linear-gradient(120deg, rgba(169, 124, 255, 0.92), rgba(102, 70, 226, 0.94));
-          border-color: rgba(225, 205, 255, 0.85);
-          color: #fff;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.33), 0 0 0 2px rgba(173, 132, 255, 0.32),
-            0 10px 22px rgba(82, 48, 190, 0.46);
+          background: linear-gradient(120deg, rgba(181, 136, 255, 0.95), rgba(104, 70, 232, 0.97));
+          border-color: rgba(239, 225, 255, 0.96);
+          color: #ffffff;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 0 0 3px rgba(174, 131, 255, 0.42),
+            0 12px 22px rgba(82, 48, 190, 0.52);
         }
 
         .cta-row {
@@ -1152,6 +1229,7 @@ function Selector({ label, options, selected, onSelect }) {
             aria-pressed={selected === option}
             onClick={() => onSelect(option)}
           >
+            {selected === option && <span className="selection-mark">✓</span>}
             {option}
           </button>
         ))}
