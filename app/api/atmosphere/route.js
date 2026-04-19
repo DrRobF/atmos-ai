@@ -175,7 +175,14 @@ async function buildPersonalAtmosphere({ description = "", mood = "Relaxed", tim
   return NextResponse.json(openaiResponse.data);
 }
 
-function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
+function buildStyledPreviewPrompt({
+  eventPlan,
+  eventType,
+  eventStyle,
+  notes,
+  isRefinement = false,
+  refinementInstruction = "",
+}) {
   const plannerNotes = notes?.trim() || "No additional planner notes.";
   const eventTypeLower = typeof eventType === "string" ? eventType.toLowerCase() : "";
   const isDaylightEvent = eventTypeLower.includes("bridal shower") || eventTypeLower.includes("brunch");
@@ -186,14 +193,23 @@ function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
       ? "Time-of-day tone: use warmer, dimmer evening lighting layers while preserving realistic exposure and detail."
       : "Time-of-day tone: match lighting color and intensity to the stated event type, avoiding default dramatic evening grading unless explicitly requested.";
 
+  const refinementDirection = isRefinement
+    ? `Refinement mode: revise the existing staged concept in this same room only. Apply this edit without changing the underlying architecture or camera framing: ${refinementInstruction || "No additional refinement details provided."}`
+    : "Initial concept mode: stage a first-pass redesign in this same uploaded room.";
+
   return [
-    `Scene overview: a new professional ${eventType} concept in a ${eventStyle} direction, designed for this exact venue architecture and scale.`,
-    "Venue fidelity: keep the real room shell, entry path, columns, walls, openings, and architectural proportions from the venue image.",
-    "Reference handling: use the reference photo only as style DNA for palette, floral language, formality, and material mood; do not restage, duplicate, or remix the source composition.",
-    "Concept direction: design a fresh interpretation with new table styling, original focal treatment, and a new lighting composition that feels custom-built for this venue.",
-    "Staging realism: choose believable installs, intentional asymmetry, practical guest circulation, and photo-ready focal hierarchy.",
-    "Visual tone: editorial, premium, calm, and immersive with realistic light behavior and physically plausible materials.",
-    "Guardrail: this must read as an original planner-designed concept, not a direct copy or extension of uploaded references.",
+    `Scene overview: stage a professional ${eventType} concept in a ${eventStyle} direction directly inside the uploaded venue image.`,
+    "Scene preservation priority 1: preserve this exact room as the architectural base; do not invent a different room.",
+    "Scene preservation priority 2: preserve the same camera angle, lens feel, and viewpoint from the uploaded venue photo.",
+    "Scene preservation priority 3: preserve visible structure and layout including walls, windows, doors, ceiling shape, floor plane, columns, stairs, and major built-in or heavy furniture positions.",
+    "Scene preservation priority 4: add requested decor, florals, lighting, and styling into that same scene as a staged redesign.",
+    "Scene preservation priority 5: final image must read clearly as the same property and same shot, newly styled by a planner.",
+    "Reference handling: venue image is structural truth. Any reference image is style inspiration only for palette, material mood, floral language, and formality; do not copy its room geometry or shot composition.",
+    "Anti-drift guardrails: do not significantly alter architecture, do not shift perspective, do not replace the scene with a generic styled interior, and do not transform this into a different property.",
+    "Room-aware staging language: place elements with clear spatial anchors such as along the back wall, around the window wall, at the left side of the main gathering area, suspended above the primary table, floor uplighting at column bases, and candle accents near the entry console when contextually appropriate.",
+    "Believability: preserve original room proportions, integrate additions naturally with plausible scale and shadows, and keep lighting physically realistic for the space and time-of-day intent.",
+    "Visual tone: premium, editorial, and realistic staging mockup, not fantasy reinterpretation and not AR overlays.",
+    refinementDirection,
     "Do not include signage text baked into architecture; keep surfaces natural and believable.",
     timeOfDayDirection,
     "Avoid diagrams, labels, overlays, or AR graphics; render a convincing in-room design preview still.",
@@ -206,24 +222,47 @@ function buildStyledPreviewPrompt({ eventPlan, eventType, eventStyle, notes }) {
   ].join(" ");
 }
 
-async function generateStyledPreviewImage(prompt) {
+async function generateStyledPreviewImage({ prompt, venueImage, referenceImage }) {
   try {
+    const conditionedBody = {
+      model: "gpt-image-1",
+      prompt,
+      size: "1536x1024",
+      quality: "high",
+      image: referenceImage ? [venueImage, referenceImage] : [venueImage],
+    };
+
     const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt,
-        size: "1536x1024",
-        quality: "high",
-      }),
+      body: JSON.stringify(conditionedBody),
     });
 
     if (!imageResponse.ok) {
-      return null;
+      const fallbackResponse = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-image-1",
+          prompt,
+          size: "1536x1024",
+          quality: "high",
+        }),
+      });
+
+      if (!fallbackResponse.ok) {
+        return null;
+      }
+
+      const fallbackPayload = await fallbackResponse.json();
+      const fallbackBase64Image = fallbackPayload?.data?.[0]?.b64_json;
+      return fallbackBase64Image ? `data:image/png;base64,${fallbackBase64Image}` : null;
     }
 
     const payload = await imageResponse.json();
@@ -325,8 +364,9 @@ async function buildEventAtmosphere({
               "For designNotes and oneSmartMove, keep output concise, premium, and client-ready rather than technical. " +
               "For suggestedPlaylist, return exactly 10 songs as title + artist pairs aligned to the event type, styling language, and the energy of this concept. " +
               "Avoid generic filler songs where possible. " +
-              "For styledPreviewPrompt, explicitly instruct the image model to create a new professional concept for this venue and not a direct restaging of uploaded images. " +
-              "If a revision request is provided, treat it as modifications to the current concept rather than an unrelated redesign unless explicitly requested. " +
+              "For styledPreviewPrompt, explicitly instruct the image model to preserve the uploaded venue as the same room and same viewpoint while staging a redesigned concept inside it. " +
+              "Treat the venue image as structural truth and any reference image as style inspiration only. " +
+              "If a revision request is provided, treat it as modifications to the current staged concept in the same room rather than permission to redesign a different space. " +
               "Return only JSON matching the schema.",
           },
         ],
@@ -348,9 +388,15 @@ async function buildEventAtmosphere({
     eventType,
     eventStyle,
     notes,
+    isRefinement,
+    refinementInstruction: trimmedRefinement,
   });
 
-  const styledPreviewImageUrl = await generateStyledPreviewImage(styledPreviewPrompt);
+  const styledPreviewImageUrl = await generateStyledPreviewImage({
+    prompt: styledPreviewPrompt,
+    venueImage,
+    referenceImage,
+  });
 
   return NextResponse.json({
     ...eventPlan,
