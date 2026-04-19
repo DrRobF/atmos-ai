@@ -130,17 +130,56 @@ async function toDataUrl(sourceUrl) {
   });
 }
 
-function fileToDataUrl(file) {
+async function compressImageFile(file, { maxDimension = 1600, quality = 0.82 } = {}) {
   if (!file) {
-    return Promise.resolve("");
+    return null;
   }
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result?.toString() ?? "");
-    reader.onerror = () => reject(new Error("Image conversion failed."));
-    reader.readAsDataURL(file);
-  });
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const nextImage = new Image();
+      nextImage.onload = () => resolve(nextImage);
+      nextImage.onerror = () => reject(new Error("Image could not be loaded."));
+      nextImage.src = objectUrl;
+    });
+
+    const sourceWidth = image.naturalWidth || image.width;
+    const sourceHeight = image.naturalHeight || image.height;
+    const largestSide = Math.max(sourceWidth, sourceHeight) || 1;
+    const scale = Math.min(1, maxDimension / largestSide);
+    const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+    const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Image processing is unavailable.");
+    }
+
+    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+    const compressedBlob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Image compression failed."));
+            return;
+          }
+          resolve(blob);
+        },
+        "image/jpeg",
+        quality,
+      );
+    });
+
+    const baseName = file.name.replace(/\.[^/.]+$/, "") || "upload";
+    return new File([compressedBlob], `${baseName}.jpg`, { type: "image/jpeg" });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 function escapePdfText(value) {
@@ -558,29 +597,35 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      const body =
-        mode === "event"
-          ? {
-              mode,
-              venueImage: venueImageFile ? await fileToDataUrl(venueImageFile) : null,
-              referenceImage: referenceImageFile ? await fileToDataUrl(referenceImageFile) : null,
-              eventType,
-              eventStyle,
-              notes: eventNotes,
-            }
-          : {
-              mode,
-              description,
-              mood,
-              time,
-              setting,
-              image: imageFile ? await fileToDataUrl(imageFile) : null,
-            };
+      const formData = new FormData();
+      formData.append("mode", mode);
+
+      if (mode === "event") {
+        const optimizedVenue = await compressImageFile(venueImageFile, { maxDimension: 1600, quality: 0.82 });
+        const optimizedReference = await compressImageFile(referenceImageFile, { maxDimension: 1400, quality: 0.78 });
+        if (optimizedVenue) {
+          formData.append("venueImage", optimizedVenue, optimizedVenue.name);
+        }
+        if (optimizedReference) {
+          formData.append("referenceImage", optimizedReference, optimizedReference.name);
+        }
+        formData.append("eventType", eventType);
+        formData.append("eventStyle", eventStyle);
+        formData.append("notes", eventNotes);
+      } else {
+        const optimizedPersonalImage = await compressImageFile(imageFile, { maxDimension: 1400, quality: 0.8 });
+        if (optimizedPersonalImage) {
+          formData.append("image", optimizedPersonalImage, optimizedPersonalImage.name);
+        }
+        formData.append("description", description);
+        formData.append("mood", mood);
+        formData.append("time", time);
+        formData.append("setting", setting);
+      }
 
       const response = await fetch("/api/atmosphere", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -621,21 +666,26 @@ export default function HomePage() {
     setIsRefining(true);
 
     try {
-      const body = {
-        mode: "event",
-        venueImage: venueImageFile ? await fileToDataUrl(venueImageFile) : null,
-        referenceImage: referenceImageFile ? await fileToDataUrl(referenceImageFile) : null,
-        eventType,
-        eventStyle,
-        notes: eventNotes,
-        currentResult: result,
-        refinementInstruction: refinementInstruction.trim(),
-      };
+      const formData = new FormData();
+      formData.append("mode", "event");
+      formData.append("eventType", eventType);
+      formData.append("eventStyle", eventStyle);
+      formData.append("notes", eventNotes);
+      formData.append("currentResult", JSON.stringify(result || {}));
+      formData.append("refinementInstruction", refinementInstruction.trim());
+
+      const optimizedVenue = await compressImageFile(venueImageFile, { maxDimension: 1600, quality: 0.82 });
+      const optimizedReference = await compressImageFile(referenceImageFile, { maxDimension: 1400, quality: 0.78 });
+      if (optimizedVenue) {
+        formData.append("venueImage", optimizedVenue, optimizedVenue.name);
+      }
+      if (optimizedReference) {
+        formData.append("referenceImage", optimizedReference, optimizedReference.name);
+      }
 
       const response = await fetch("/api/atmosphere", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: formData,
       });
 
       if (!response.ok) {
