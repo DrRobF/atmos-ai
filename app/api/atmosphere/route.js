@@ -223,25 +223,51 @@ function buildStyledPreviewPrompt({
 }
 
 async function generateStyledPreviewImage({ prompt, venueImage, referenceImage }) {
-  try {
-    const conditionedBody = {
-      model: "gpt-image-1",
-      prompt,
-      size: "1536x1024",
-      quality: "high",
-      image: referenceImage ? [venueImage, referenceImage] : [venueImage],
-    };
+  const logImageError = (stage, details) => {
+    console.error(`[Atmos] Styled preview ${stage} failed`, details);
+  };
 
-    const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
+  const extractErrorText = async (response) => {
+    const raw = await response.text();
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed?.error?.message || parsed?.message || raw;
+    } catch {
+      return raw;
+    }
+  };
+
+  const parseBase64Image = (payload) => {
+    const base64Image = payload?.data?.[0]?.b64_json;
+    return base64Image ? `data:image/png;base64,${base64Image}` : null;
+  };
+
+  try {
+    // Conditioned requests must use the image edits endpoint. The generations
+    // endpoint can only generate from prompt text and does not accept input images.
+    const conditionedFormData = new FormData();
+    conditionedFormData.append("model", "gpt-image-1");
+    conditionedFormData.append("prompt", prompt);
+    conditionedFormData.append("size", "1536x1024");
+    conditionedFormData.append("quality", "high");
+    conditionedFormData.append("input_fidelity", "high");
+    conditionedFormData.append("image[]", venueImage);
+    if (referenceImage) {
+      conditionedFormData.append("image[]", referenceImage);
+    }
+
+    const conditionedResponse = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      body: JSON.stringify(conditionedBody),
+      body: conditionedFormData,
     });
 
-    if (!imageResponse.ok) {
+    if (!conditionedResponse.ok) {
+      const conditionedError = await extractErrorText(conditionedResponse);
+      logImageError("conditioned request", { status: conditionedResponse.status, error: conditionedError });
+
       const fallbackResponse = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: {
@@ -257,23 +283,28 @@ async function generateStyledPreviewImage({ prompt, venueImage, referenceImage }
       });
 
       if (!fallbackResponse.ok) {
+        const fallbackError = await extractErrorText(fallbackResponse);
+        logImageError("fallback generation request", { status: fallbackResponse.status, error: fallbackError });
         return null;
       }
 
       const fallbackPayload = await fallbackResponse.json();
-      const fallbackBase64Image = fallbackPayload?.data?.[0]?.b64_json;
-      return fallbackBase64Image ? `data:image/png;base64,${fallbackBase64Image}` : null;
+      return parseBase64Image(fallbackPayload);
     }
 
-    const payload = await imageResponse.json();
-    const base64Image = payload?.data?.[0]?.b64_json;
-
-    if (!base64Image) {
+    const payload = await conditionedResponse.json();
+    const conditionedImage = parseBase64Image(payload);
+    if (!conditionedImage) {
+      logImageError("conditioned response parse", { error: "No b64_json image in response payload." });
       return null;
     }
 
-    return `data:image/png;base64,${base64Image}`;
-  } catch {
+    return conditionedImage;
+  } catch (error) {
+    logImageError("runtime", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : null,
+    });
     return null;
   }
 }
