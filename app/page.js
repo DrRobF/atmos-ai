@@ -234,9 +234,31 @@ function toConciseSentence(value, fallback = "—") {
   if (!text) {
     return fallback;
   }
-  const parts = text.match(/[^.!?]+[.!?]?/g) || [];
-  const trimmed = parts.slice(0, 2).join(" ").trim() || text;
-  return trimmed.length > 240 ? `${trimmed.slice(0, 237)}...` : trimmed;
+  const parts = (text.match(/[^.!?]+[.!?]?/g) || []).map((part) => part.trim()).filter(Boolean);
+  const maxSentences = 4;
+  const maxChars = 420;
+  const selected = [];
+
+  for (const part of parts.slice(0, maxSentences)) {
+    const candidate = [...selected, part].join(" ").trim();
+    if (candidate.length > maxChars) {
+      break;
+    }
+    selected.push(part);
+  }
+
+  let trimmed = selected.join(" ").trim() || text;
+  const wasTruncated = trimmed.length < text.length;
+
+  if (trimmed.length > maxChars) {
+    trimmed = trimmed.slice(0, maxChars).replace(/\s+\S*$/, "").trim();
+  }
+
+  if (wasTruncated && !/[.!?…]$/.test(trimmed)) {
+    trimmed = `${trimmed}...`;
+  }
+
+  return trimmed || fallback;
 }
 
 function compactEventResult(result) {
