@@ -242,31 +242,77 @@ async function generateStyledPreviewImage({ prompt, venueImage, referenceImage }
     return base64Image ? `data:image/png;base64,${base64Image}` : null;
   };
 
+  const createImageFile = async (imageSource, label) => {
+    if (!imageSource || typeof imageSource !== "string") {
+      return null;
+    }
+
+    try {
+      const imageResponse = await fetch(imageSource);
+      if (!imageResponse.ok) {
+        throw new Error(`Unable to fetch image source (${imageResponse.status})`);
+      }
+
+      const blob = await imageResponse.blob();
+      const extension = blob.type?.split("/")?.[1] || "png";
+      return new File([blob], `${label}.${extension}`, { type: blob.type || "image/png" });
+    } catch (error) {
+      logImageError("image file conversion", {
+        label,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  };
+
   try {
     // Conditioned requests must use the image edits endpoint. The generations
     // endpoint can only generate from prompt text and does not accept input images.
+    const venueImageFile = await createImageFile(venueImage, "venue-image");
+    const referenceImageFile = await createImageFile(referenceImage, "reference-image");
+
     const conditionedFormData = new FormData();
     conditionedFormData.append("model", "gpt-image-1");
     conditionedFormData.append("prompt", prompt);
     conditionedFormData.append("size", "1536x1024");
     conditionedFormData.append("quality", "high");
-    conditionedFormData.append("input_fidelity", "high");
-    conditionedFormData.append("image[]", venueImage);
-    if (referenceImage) {
-      conditionedFormData.append("image[]", referenceImage);
+
+    if (venueImageFile) {
+      conditionedFormData.append("image[]", venueImageFile, venueImageFile.name);
     }
 
-    const conditionedResponse = await fetch("https://api.openai.com/v1/images/edits", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: conditionedFormData,
-    });
+    if (referenceImageFile) {
+      conditionedFormData.append("image[]", referenceImageFile, referenceImageFile.name);
+    }
 
-    if (!conditionedResponse.ok) {
-      const conditionedError = await extractErrorText(conditionedResponse);
-      logImageError("conditioned request", { status: conditionedResponse.status, error: conditionedError });
+    const shouldUseConditionedRequest = Boolean(venueImageFile);
+
+    if (!shouldUseConditionedRequest) {
+      logImageError("conditioned request setup", {
+        error: "Venue image could not be converted into a file payload. Using fallback generation.",
+      });
+    }
+
+    const conditionedResponse = shouldUseConditionedRequest
+      ? await fetch("https://api.openai.com/v1/images/edits", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: conditionedFormData,
+        })
+      : null;
+
+    if (!conditionedResponse || !conditionedResponse.ok) {
+      let conditionedError = "Conditioned request skipped due to invalid image payload.";
+      let conditionedStatus = null;
+
+      if (conditionedResponse) {
+        conditionedStatus = conditionedResponse.status;
+        conditionedError = await extractErrorText(conditionedResponse);
+      }
+
+      logImageError("conditioned request", { status: conditionedStatus, error: conditionedError });
 
       const fallbackResponse = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
