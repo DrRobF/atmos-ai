@@ -34,6 +34,18 @@ const eventStyleOptions = [
 ];
 
 const initialResult = null;
+const playlistFallback = [
+  { title: "Midnight City", artist: "M83" },
+  { title: "Electric Feel", artist: "MGMT" },
+  { title: "Fantasy", artist: "Mariah Carey" },
+  { title: "Levitating", artist: "Dua Lipa" },
+  { title: "Adore You", artist: "Harry Styles" },
+  { title: "Jubel", artist: "Klingande" },
+  { title: "Tadow", artist: "Masego & FKJ" },
+  { title: "Latch", artist: "Disclosure ft. Sam Smith" },
+  { title: "Golden", artist: "Jill Scott" },
+  { title: "On Hold", artist: "The xx" },
+];
 
 function normalizeValue(value) {
   if (Array.isArray(value)) {
@@ -252,6 +264,22 @@ function getEventConceptSections(result) {
   ];
 }
 
+function getSuggestedPlaylist(result) {
+  const normalized = Array.isArray(result?.suggestedPlaylist)
+    ? result.suggestedPlaylist
+        .map((entry) => ({
+          title: typeof entry?.title === "string" ? entry.title.trim() : "",
+          artist: typeof entry?.artist === "string" ? entry.artist.trim() : "",
+        }))
+        .filter((entry) => entry.title && entry.artist)
+    : [];
+  const output = [...normalized];
+  for (let index = output.length; index < 10; index += 1) {
+    output.push(playlistFallback[index]);
+  }
+  return output.slice(0, 10);
+}
+
 async function createReportPdf({ result, mode }) {
   const allLines = [
     {
@@ -310,14 +338,21 @@ async function createReportPdf({ result, mode }) {
 
   const sections =
     mode === "event"
-      ? getEventConceptSections(result)
+      ? [
+          ...getEventConceptSections(result).slice(0, 5),
+          ["Suggested Playlist", getSuggestedPlaylist(result).map((item, index) => `${index + 1}. ${item.title} — ${item.artist}`).join("\n")],
+          ...getEventConceptSections(result).slice(5),
+        ]
       : getReportSections(result).flatMap((section) =>
           section.items.map(([label, value]) => [`${section.title} — ${label}`, toConciseSentence(value)]),
         );
 
   let nextY = mode === "event" ? 684 : 742;
   sections.forEach(([title, content], idx) => {
-    const wrapped = wrapText(content, 82).slice(0, 4);
+    const wrapped = String(content)
+      .split("\n")
+      .flatMap((line) => wrapText(line, 82))
+      .slice(0, title === "Suggested Playlist" ? 12 : 4);
     const cardHeight = 54 + wrapped.length * 14;
     if (nextY - cardHeight < 64) {
       allLines.push({ command: "__PAGE_BREAK__" });
@@ -427,15 +462,22 @@ export default function HomePage() {
   const [eventNotes, setEventNotes] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(initialResult);
+  const [refinementInstruction, setRefinementInstruction] = useState("");
 
   const canSubmit = useMemo(() => {
     if (isLoading) return false;
     if (mode === "event") return Boolean(venueImageFile);
     return Boolean(description.trim() || imageFile);
   }, [mode, isLoading, description, imageFile, venueImageFile]);
+
+  const canRefine = useMemo(
+    () => mode === "event" && result?.mode === "event" && !isLoading && !isRefining && Boolean(refinementInstruction.trim()),
+    [mode, result, isLoading, isRefining, refinementInstruction],
+  );
 
   useEffect(
     () => () => {
@@ -526,6 +568,9 @@ export default function HomePage() {
 
       const payload = await response.json();
       setResult(payload);
+      if (payload?.mode === "event") {
+        setRefinementInstruction("");
+      }
     } catch (submitError) {
       setError(submitError.message || "Something went wrong.");
     } finally {
@@ -534,7 +579,7 @@ export default function HomePage() {
   }
 
   async function handleDownloadPdf() {
-    if (!result || isDownloadingPdf) return;
+    if (!result || isDownloadingPdf || isRefining) return;
     setError("");
     setIsDownloadingPdf(true);
     try {
@@ -543,6 +588,46 @@ export default function HomePage() {
       setError(downloadError.message || "Unable to download PDF right now.");
     } finally {
       setIsDownloadingPdf(false);
+    }
+  }
+
+  async function handleRefineConcept(event) {
+    event.preventDefault();
+    if (!canRefine) return;
+
+    setError("");
+    setIsRefining(true);
+
+    try {
+      const body = {
+        mode: "event",
+        venueImage: venueImageFile ? await fileToDataUrl(venueImageFile) : null,
+        referenceImage: referenceImageFile ? await fileToDataUrl(referenceImageFile) : null,
+        eventType,
+        eventStyle,
+        notes: eventNotes,
+        currentResult: result,
+        refinementInstruction: refinementInstruction.trim(),
+      };
+
+      const response = await fetch("/api/atmosphere", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Unable to refine the concept right now.");
+      }
+
+      const payload = await response.json();
+      setResult(payload);
+      setRefinementInstruction("");
+    } catch (refineError) {
+      setError(refineError.message || "Something went wrong while refining your concept.");
+    } finally {
+      setIsRefining(false);
     }
   }
 
@@ -570,6 +655,7 @@ export default function HomePage() {
                 onClick={() => {
                   setMode(item.value);
                   setResult(null);
+                  setRefinementInstruction("");
                   setError("");
                 }}
               >
@@ -719,7 +805,7 @@ export default function HomePage() {
                 type="button"
                 className="download-btn"
                 onClick={handleDownloadPdf}
-                disabled={!result || isLoading || isDownloadingPdf}
+                disabled={!result || isLoading || isDownloadingPdf || isRefining}
               >
                 {isDownloadingPdf ? "Preparing PDF..." : "Download PDF"}
               </button>
@@ -764,6 +850,27 @@ export default function HomePage() {
 
           {result && !isLoading &&
             (result.mode === "event" ? <EventResults result={result} /> : <PersonalResults result={result} />)}
+
+          {mode === "event" && result?.mode === "event" && !isLoading && (
+            <form className="refine-box" onSubmit={handleRefineConcept}>
+              <p className="refine-kicker">Refine This Concept</p>
+              <label htmlFor="refinementInstruction">Request revisions to this current event vision</label>
+              <textarea
+                id="refinementInstruction"
+                value={refinementInstruction}
+                onChange={(event) => setRefinementInstruction(event.target.value)}
+                placeholder="Example: make the palette warmer with richer reds and softer candlelight near guest seating."
+                rows={4}
+                disabled={isRefining}
+              />
+              <div className="refine-actions">
+                <button type="submit" className="refine-btn" disabled={!canRefine}>
+                  {isRefining ? "Refining Concept..." : "Apply Changes"}
+                </button>
+                <p>We revise this concept and regenerate your brief, playlist, and styled preview.</p>
+              </div>
+            </form>
+          )}
         </section>
       </div>
 
@@ -1161,6 +1268,48 @@ export default function HomePage() {
           font-size: 0.84rem;
           color: #79695a;
         }
+        .refine-box {
+          border: 1px solid rgba(188, 166, 141, 0.36);
+          border-radius: 18px;
+          padding: 16px;
+          background: linear-gradient(160deg, rgba(255, 250, 244, 0.96), rgba(243, 233, 220, 0.92));
+          display: grid;
+          gap: 10px;
+        }
+        .refine-kicker {
+          margin: 0;
+          font-size: 11px;
+          color: #8d7761;
+          text-transform: uppercase;
+          letter-spacing: 0.11em;
+          font-weight: 700;
+        }
+        .refine-box textarea {
+          min-height: 110px;
+        }
+        .refine-actions {
+          display: grid;
+          gap: 8px;
+        }
+        .refine-actions p {
+          margin: 0;
+          color: #6f6153;
+          font-size: 0.86rem;
+        }
+        .refine-btn {
+          border: 1px solid rgba(33, 93, 85, 0.85);
+          color: #fff;
+          background: linear-gradient(130deg, #3c9a8d, #2a756a);
+          border-radius: 12px;
+          padding: 11px 16px;
+          font-weight: 700;
+          cursor: pointer;
+          width: fit-content;
+        }
+        .refine-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
         .spinner {
           width: 18px;
           height: 18px;
@@ -1410,6 +1559,8 @@ function EventResults({ result }) {
   const hasStyledPreviewImage = Boolean(result.styledPreviewImageUrl);
   const hasStyledPreviewPrompt = Boolean(result.styledPreviewPrompt);
   const conceptSections = getEventConceptSections(result);
+  const suggestedPlaylist = getSuggestedPlaylist(result);
+  const energySectionIndex = conceptSections.findIndex(([title]) => title === "The Energy");
 
   return (
     <div className="result-grid event-grid">
@@ -1456,11 +1607,14 @@ function EventResults({ result }) {
       </article>
 
       {conceptSections.map(([title, summary], index) => (
-        <EventBriefCard
+        <FragmentWithPlaylist
           key={title}
+          index={index}
           title={title}
           summary={summary}
-          className={`${eventSectionAccents[index % eventSectionAccents.length]} ${index === conceptSections.length - 1 ? "smart-move" : ""}`}
+          showPlaylist={index === energySectionIndex}
+          playlist={suggestedPlaylist}
+          isLast={index === conceptSections.length - 1}
         />
       ))}
       <style jsx>{`
@@ -1668,6 +1822,74 @@ function EventResults({ result }) {
         }
       `}</style>
     </div>
+  );
+}
+
+function FragmentWithPlaylist({ index, title, summary, showPlaylist, playlist, isLast }) {
+  return (
+    <>
+      <EventBriefCard
+        title={title}
+        summary={summary}
+        className={`${eventSectionAccents[index % eventSectionAccents.length]} ${isLast ? "smart-move" : ""}`}
+      />
+      {showPlaylist && <SuggestedPlaylistCard playlist={playlist} />}
+    </>
+  );
+}
+
+function SuggestedPlaylistCard({ playlist }) {
+  return (
+    <article className="result-card event-brief-card playlist-card olive">
+      <p className="brief-eyebrow">Suggested Playlist</p>
+      <ol>
+        {playlist.map((song, index) => (
+          <li key={`${song.title}-${song.artist}-${index}`}>
+            <span className="song-title">{song.title}</span> — <span className="song-artist">{song.artist}</span>
+          </li>
+        ))}
+      </ol>
+      <style jsx>{`
+        .playlist-card {
+          position: relative;
+          padding-left: 16px;
+        }
+        .playlist-card::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 8px;
+          border-radius: 12px;
+          background: #b2af7d;
+        }
+        .brief-eyebrow {
+          margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-size: 11px;
+          color: #8d7862;
+          font-weight: 700;
+        }
+        .playlist-card ol {
+          margin: 10px 0 0;
+          padding-left: 18px;
+          display: grid;
+          gap: 6px;
+          color: #3f352d;
+        }
+        .playlist-card li {
+          line-height: 1.45;
+        }
+        .song-title {
+          font-weight: 600;
+        }
+        .song-artist {
+          color: #67584a;
+        }
+      `}</style>
+    </article>
   );
 }
 

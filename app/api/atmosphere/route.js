@@ -68,6 +68,20 @@ const eventSchema = {
     roomFlow: { type: "string" },
     designNotes: { type: "string" },
     oneSmartMove: { type: "string" },
+    suggestedPlaylist: {
+      type: "array",
+      minItems: 10,
+      maxItems: 10,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          artist: { type: "string" },
+        },
+        required: ["title", "artist"],
+      },
+    },
   },
   required: [
     "mode",
@@ -80,6 +94,7 @@ const eventSchema = {
     "roomFlow",
     "designNotes",
     "oneSmartMove",
+    "suggestedPlaylist",
   ],
 };
 
@@ -230,6 +245,8 @@ async function buildEventAtmosphere({
   eventType = "Private Dinner",
   eventStyle = "Elegant",
   notes = "",
+  refinementInstruction = "",
+  currentResult = null,
 }) {
   if (!venueImage) {
     return NextResponse.json(
@@ -245,16 +262,32 @@ async function buildEventAtmosphere({
     );
   }
 
+  const trimmedRefinement = typeof refinementInstruction === "string" ? refinementInstruction.trim() : "";
+  const isRefinement = Boolean(trimmedRefinement);
+  const currentResultContext =
+    currentResult && typeof currentResult === "object"
+      ? [
+          `Current concept lighting: ${currentResult.lighting || "N/A"}`,
+          `Current concept setup: ${currentResult.decorPlacement || "N/A"}`,
+          `Current concept floral/decor: ${currentResult.floralDecor || "N/A"}`,
+          `Current concept energy/music: ${currentResult.music || "N/A"}`,
+          `Current concept flow: ${currentResult.roomFlow || "N/A"}`,
+          `Current concept notes: ${currentResult.designNotes || "N/A"}`,
+        ].join(" ")
+      : "";
+
   const userContent = [
     {
       type: "input_text",
       text:
-        "Build a high-end event atmosphere and venue styling plan from these inputs. " +
+        `${isRefinement ? "Revise this existing event concept with the requested edits." : "Build a high-end event atmosphere and venue styling plan from these inputs."} ` +
         "Think like a luxury event planner giving install-ready direction to a production team. " +
         "Prioritize fewer, stronger moves over long generic lists. " +
         "Anchor every recommendation to the room's real geometry: entry sequence, walls, corners, focal axis, and circulation paths. " +
         `Event type: ${eventType}. Style/vibe: ${eventStyle}. ` +
-        `Planner notes: ${notes?.trim() || "No notes provided."}`,
+        `Planner notes: ${notes?.trim() || "No notes provided."} ` +
+        `${isRefinement ? `Revision request: ${trimmedRefinement}.` : ""} ` +
+        `${isRefinement ? `Existing concept context: ${currentResultContext || "No previous context provided."}` : ""}`,
     },
     {
       type: "input_image",
@@ -290,7 +323,10 @@ async function buildEventAtmosphere({
               "For roomFlow, describe the guest journey from entry to gathering to high-energy zone, including where bottlenecks are avoided. " +
               "For music, place speakers/DJ/live elements in believable positions that protect conversation zones while building momentum where appropriate. " +
               "For designNotes and oneSmartMove, keep output concise, premium, and client-ready rather than technical. " +
+              "For suggestedPlaylist, return exactly 10 songs as title + artist pairs aligned to the event type, styling language, and the energy of this concept. " +
+              "Avoid generic filler songs where possible. " +
               "For styledPreviewPrompt, explicitly instruct the image model to create a new professional concept for this venue and not a direct restaging of uploaded images. " +
+              "If a revision request is provided, treat it as modifications to the current concept rather than an unrelated redesign unless explicitly requested. " +
               "Return only JSON matching the schema.",
           },
         ],
@@ -429,6 +465,7 @@ function buildEventPlanFallback(payload) {
     designNotes: firstCandidate || "Use premium finishes, intentional spacing, and realistic scale for all installs.",
     oneSmartMove:
       "Invest in one high-impact focal installation at guest eye-line to establish immediate visual hierarchy.",
+    suggestedPlaylist: buildFallbackPlaylist(),
     styledPreviewPrompt: firstCandidate,
     styledPreviewImageUrl: null,
   });
@@ -447,7 +484,42 @@ function normalizeEventPlan(eventPlan = {}) {
     roomFlow: typeof eventPlan.roomFlow === "string" ? eventPlan.roomFlow : "",
     designNotes: typeof eventPlan.designNotes === "string" ? eventPlan.designNotes : "",
     oneSmartMove: typeof eventPlan.oneSmartMove === "string" ? eventPlan.oneSmartMove : "",
+    suggestedPlaylist: normalizeSuggestedPlaylist(eventPlan.suggestedPlaylist),
   };
+}
+
+function normalizeSuggestedPlaylist(playlist) {
+  const normalized = Array.isArray(playlist)
+    ? playlist
+        .map((entry) => ({
+          title: typeof entry?.title === "string" ? entry.title.trim() : "",
+          artist: typeof entry?.artist === "string" ? entry.artist.trim() : "",
+        }))
+        .filter((entry) => entry.title && entry.artist)
+    : [];
+
+  const fallback = buildFallbackPlaylist();
+  const filled = [...normalized];
+  for (let index = filled.length; index < 10; index += 1) {
+    filled.push(fallback[index]);
+  }
+
+  return filled.slice(0, 10);
+}
+
+function buildFallbackPlaylist() {
+  return [
+    { title: "Midnight City", artist: "M83" },
+    { title: "Electric Feel", artist: "MGMT" },
+    { title: "Fantasy", artist: "Mariah Carey" },
+    { title: "Levitating", artist: "Dua Lipa" },
+    { title: "Adore You", artist: "Harry Styles" },
+    { title: "Jubel", artist: "Klingande" },
+    { title: "Tadow", artist: "Masego & FKJ" },
+    { title: "Latch", artist: "Disclosure ft. Sam Smith" },
+    { title: "Golden", artist: "Jill Scott" },
+    { title: "On Hold", artist: "The xx" },
+  ];
 }
 
 async function fetchAtmosphereResponse({ input, schema, schemaName, fallbackDataBuilder }) {
