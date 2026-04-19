@@ -100,7 +100,7 @@ const eventSchema = {
 
 export async function POST(request) {
   try {
-    const body = await request.json();
+    const body = await parseRequestPayload(request);
     const mode = body.mode === "event" ? "event" : "personal";
 
     if (mode === "event") {
@@ -114,6 +114,72 @@ export async function POST(request) {
       { status: 500 },
     );
   }
+}
+
+async function parseRequestPayload(request) {
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("multipart/form-data")) {
+    return request.json();
+  }
+
+  const formData = await request.formData();
+  const toStringValue = (key) => {
+    const value = formData.get(key);
+    return typeof value === "string" ? value : "";
+  };
+
+  const toDataUrlValue = async (key) => {
+    const value = formData.get(key);
+    if (typeof value === "string") {
+      return value || null;
+    }
+    if (value && typeof value.arrayBuffer === "function" && value.size > 0) {
+      return await fileToDataUrl(value);
+    }
+    return null;
+  };
+
+  const mode = toStringValue("mode") === "event" ? "event" : "personal";
+
+  if (mode === "event") {
+    const rawCurrentResult = toStringValue("currentResult");
+    let currentResult = null;
+    if (rawCurrentResult) {
+      try {
+        const parsed = JSON.parse(rawCurrentResult);
+        if (parsed && typeof parsed === "object") {
+          currentResult = parsed;
+        }
+      } catch {}
+    }
+
+    return {
+      mode,
+      venueImage: await toDataUrlValue("venueImage"),
+      referenceImage: await toDataUrlValue("referenceImage"),
+      eventType: toStringValue("eventType"),
+      eventStyle: toStringValue("eventStyle"),
+      notes: toStringValue("notes"),
+      refinementInstruction: toStringValue("refinementInstruction"),
+      currentResult,
+    };
+  }
+
+  return {
+    mode: "personal",
+    description: toStringValue("description"),
+    mood: toStringValue("mood"),
+    time: toStringValue("time"),
+    setting: toStringValue("setting"),
+    image: await toDataUrlValue("image"),
+  };
+}
+
+async function fileToDataUrl(file) {
+  const bytes = await file.arrayBuffer();
+  const base64 = Buffer.from(bytes).toString("base64");
+  const mimeType = file.type || "application/octet-stream";
+  return `data:${mimeType};base64,${base64}`;
 }
 
 async function buildPersonalAtmosphere({ description = "", mood = "Relaxed", time = "Day", setting = "Alone", image }) {
