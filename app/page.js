@@ -344,7 +344,7 @@ function getSuggestedPlaylist(result) {
 async function createReportPdf({ result, mode }) {
   const allLines = [
     {
-      text: mode === "event" ? "Atmos AI Event Concept Brief" : "Atmos AI Personal Atmosphere Brief",
+      text: mode === "event" ? "Atmos by Maison Lucia Event Concept Brief" : "Atmos by Maison Lucia Personal Atmosphere Brief",
       size: 19,
       bold: true,
       y: 792,
@@ -708,12 +708,21 @@ export default function HomePage() {
       <div className="page-inner">
         <section className="hero card">
           <div className="hero-body">
-            <p className="eyebrow">Atmos AI</p>
+            <p className="eyebrow">Atmos by Maison Lucia</p>
             <h1>Design the perfect atmosphere for everyday spaces and standout events.</h1>
             <p className="subtitle">
-              Personal mode keeps your original vibe blueprint flow. Event mode upgrades Atmos into a
-              venue styling assistant for lighting, decor placement, music, and room flow.
+              A curated first step in shaping your event atmosphere. Personal mode keeps your original vibe blueprint
+              flow. Event mode upgrades Atmos into a venue styling assistant for lighting, decor placement, music, and
+              room flow.
             </p>
+            <a
+              className="maison-link-btn"
+              href="https://www.maisonluciallc.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Return to Maison Lucia
+            </a>
           </div>
 
           <div className="mode-switch" role="tablist" aria-label="Mode switch">
@@ -943,6 +952,13 @@ export default function HomePage() {
               </div>
             </form>
           )}
+
+          <div className="service-cta">
+            <p>Love this direction? Maison Lucia can help create it.</p>
+            <a href="https://www.maisonluciallc.com" target="_blank" rel="noopener noreferrer">
+              Plan with Maison Lucia
+            </a>
+          </div>
         </section>
       </div>
 
@@ -1006,6 +1022,25 @@ export default function HomePage() {
           margin-top: 12px;
           color: #5d5146;
           overflow-wrap: anywhere;
+        }
+        .maison-link-btn {
+          margin-top: 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          border: 1px solid rgba(153, 126, 95, 0.58);
+          color: #574636;
+          background: rgba(255, 250, 244, 0.9);
+          padding: 9px 16px;
+          font-size: 0.84rem;
+          font-weight: 700;
+          text-decoration: none;
+          transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .maison-link-btn:hover {
+          background: rgba(248, 238, 225, 0.95);
+          transform: translateY(-1px);
         }
 
         .mode-switch {
@@ -1381,6 +1416,33 @@ export default function HomePage() {
         .refine-btn:disabled {
           opacity: 0.55;
           cursor: not-allowed;
+        }
+        .service-cta {
+          border-top: 1px solid rgba(190, 170, 145, 0.4);
+          padding-top: 16px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .service-cta p {
+          margin: 0;
+          color: #5e5042;
+          font-size: 0.95rem;
+        }
+        .service-cta a {
+          border: 1px solid rgba(32, 90, 82, 0.82);
+          color: #ffffff;
+          background: linear-gradient(135deg, #3a9788 0%, #2d7d70 62%, #25685e 100%);
+          border-radius: 12px;
+          padding: 10px 16px;
+          font-weight: 700;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          white-space: nowrap;
         }
         .spinner {
           width: 18px;
